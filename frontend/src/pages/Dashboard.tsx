@@ -3,8 +3,8 @@ import React from 'react';
 const Dashboard: React.FC = () => {
     return (
         <div>
-            <h1>Welcome to SecureTrust Dasboard</h1>
-            <p>The project starts now!</p>
+            <h1>Welcome to SecureTrust Escrow</h1>
+            <p>Give us ur money now plz</p>
 	    </div>
     )
 };
