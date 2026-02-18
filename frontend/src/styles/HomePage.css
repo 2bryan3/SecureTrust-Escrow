@@ -1,0 +1,226 @@
+/* =========================
+   Reset & Global Styles
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #fff; /* ensures background stays white */
+  color: #111
+}
+
+
+/* =========================
+   Page Container
+========================= */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.home-page {
+  width: 100%;
+  max-width: 1400px; /* center page content */
+  margin: 0 auto;
+  padding: 0 16px;
+  flex: 1;
+  background-color: #fff;
+}
+
+/* =========================
+   Header
+========================= */
+.header {
+  display: flex;
+  flex-direction: column;  /* stack logo above actions */
+  align-items: center;
+  background-color: #95c9dcd2;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-radius: 24px 24px 24px 24px;
+  padding: 16px 0;
+}
+
+.logo {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #111;
+  line-height: 1; /* shrink height to letters only */
+  height: 1em; /* ensures logo height is consistent */
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: row; /* stack search + user actions */
+  align-items: center;
+  gap: 50px;
+  margin-top: 8px;
+}
+
+.search-bar {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  width: 300px;
+  font-size: 1rem;
+}
+
+.user-actions {
+  font-weight: 500;
+  color: #111;
+  font-size: 1rem;
+}
+
+/* =========================
+   Hero Banner
+========================= */
+.hero-banner {
+  background: linear-gradient(135deg, #a0c4ff, #bdb2ff);
+  color: #fff;
+  padding: 80px 32px;
+  text-align: center;
+  border-radius: 24px 24px 24px 24px;
+}
+
+.hero-banner h1 {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.hero-banner p {
+  font-size: 1.2rem;
+  margin-bottom: 24px;
+}
+
+.hero-banner button {
+  background-color: #fff;
+  color: #5a5af2;
+  border: none;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hero-banner button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* =========================
+   Categories
+========================= */
+.category-chips {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.chip {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background-color: #e0e0ff;
+  color: #5a5af2;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.chip:hover {
+  background-color: #c4c4ff;
+}
+
+/* =========================
+   Section Titles
+========================= */
+.section-title {
+  font-size: 1.8rem;
+  text-align: center;
+  margin: 40px 0 16px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* =========================
+   Listing Grid
+========================= */
+.listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  padding: 16px 0 32px;
+  justify-items: center;
+}
+
+/* =========================
+   Listing Card (Apple-style)
+========================= */
+.dl-card {
+  background-color: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  width: 100%;
+  max-width: 260px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dl-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.dl-card-image-wrapper {
+  width: 100%;
+  aspect-ratio: 4/3; /* keeps image proportions */
+  overflow: hidden;
+}
+
+.dl-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dl-card-body {
+  padding: 12px 16px;
+}
+
+.dl-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.dl-card-price {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #5a5af2;
+}
+
+/* =========================
+   Footer
+========================= */
+.footer {
+  background-color: #fff;
+  padding: 24px 32px;
+  text-align: center;
+  color: #777;
+  border-top: 1px solid #eee;
+  margin-top: auto;
+}

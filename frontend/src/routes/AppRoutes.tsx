@@ -1,17 +1,15 @@
-import React, {useEffect, useState} from 'react'
-import {BrowserRouter, Route, Routes} from "react-router-dom";
-import { useNavigate } from "react-router-dom"
-import Dashboard from '../pages/Dashboard'
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import { HomePage } from "../pages/HomePage";
+import Dashboard from "../pages/Dashboard";
 
 const AppRoutes: React.FC = () => {
-    
-    const navigate = useNavigate();
-
-    return (
-        <Routes>
-            <Route path="/" element={<Dashboard />} />
-        </Routes>
-    );
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+    </Routes>
+  );
 };
 
-export default AppRoutes
+export default AppRoutes;
