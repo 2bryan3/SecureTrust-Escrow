@@ -10,14 +10,16 @@ type Props = {
 
 export const ListingGrid: React.FC<Props> = ({ items }) => {
   return (
-    <div className="listing-grid">
-      {items.map((item) => (
-        <ListingCard
-          key={item._id}
-          listing={item}
-          onClick={() => console.log("Clicked", item.title)}
-        />
-      ))}
+    <div className="page-container">
+        <div className="listing-grid">
+        {items.map((item) => (
+            <ListingCard
+            key={item._id}
+            listing={item}
+            onClick={() => console.log("Clicked", item.title)}
+            />
+        ))}
+        </div>
     </div>
   );
 };

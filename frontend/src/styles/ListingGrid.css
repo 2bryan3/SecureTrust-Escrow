@@ -1,6 +1,15 @@
+/* ================================
+   ListingGrid
+================================ */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2.5rem 3rem;
+}
+
 .listing-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-  padding: 20px 0;
+  gap: 1rem;
+  padding: 1.25rem 0 0;
 }
