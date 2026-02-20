@@ -137,10 +137,24 @@
   font-size: 2.8rem;
 }
 
-.hero-float--a { width: 130px; height: 130px; top: 0;      left: 80px;   animation: floatA 4s   ease-in-out infinite; }
-.hero-float--b { width: 160px; height: 160px; top: 60px;   right: 0;     animation: floatB 5s   ease-in-out infinite; }
-.hero-float--c { width: 110px; height: 110px; bottom: 20px; left: 20px;  animation: floatA 6s   ease-in-out infinite 0.8s; }
-.hero-float--d { width: 120px; height: 120px; bottom: 30px; right: 60px; animation: floatB 4.5s ease-in-out infinite 1.2s; }
+.hero-float-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+}
+
+.hero-float--a .hero-float-img { object-position: 30% 60%; }
+.hero-float--b .hero-float-img { object-position: 30% 60%; }
+.hero-float--c .hero-float-img { object-position: 40% 60%; }
+.hero-float--d .hero-float-img { object-position: 80% 0%; }
+
+
+
+.hero-float--a { width: 160px; height: 160px; top: 0;      left: 80px;   animation: floatA 4s   ease-in-out infinite; }
+.hero-float--b { width: 160px; height: 160px; top: 40px;   right: 0;     animation: floatB 5s   ease-in-out infinite; }
+.hero-float--c { width: 180px; height: 130px; bottom: 20px; left: 0px;  animation: floatA 6s   ease-in-out infinite 0.8s; }
+.hero-float--d { width: 160px; height: 120px; bottom: 0px; left: 200px; animation: floatB 4.5s ease-in-out infinite 1.2s; }
 
 @keyframes floatA {
   0%, 100% { transform: translateY(0); }

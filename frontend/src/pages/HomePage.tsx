@@ -1,7 +1,7 @@
 // src/pages/HomePage.tsx
 import React from "react";
 import { sampleListings } from "../data/sampleListings";
-import { NavBar } from "../components/NavBar";
+import { NavBar } from "../components/Navbar";
 import { HeroBanner } from "../components/HeroBanner";
 import { StatsStrip } from "../components/StatStrip";
 import { CategoryChips } from "../components/Categories";

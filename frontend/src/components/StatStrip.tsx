@@ -1,6 +1,6 @@
 // src/components/StatsStrip.tsx
 import React from "react";
-import "../styles/StatsStrip.css";
+import "../styles/StatStrip.css";
 
 type Stat = {
   value: string;
