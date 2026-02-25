@@ -1,5 +1,7 @@
 // src/components/Navbar.tsx
 import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "../styles/NavBar.css";
 
 type NavbarProps = {
@@ -7,20 +9,54 @@ type NavbarProps = {
 };
 
 export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await logout();
+    navigate("/");
+  }
+
   return (
     <header className="navbar">
-      <span className="navbar-logo">{logo}</span>
+      {/* Logo */}
+      <Link to="/" className="navbar-logo">
+        {logo}
+      </Link>
+
       <div className="navbar-center">
         <nav className="navbar-links">
-          <a href="#">Popular Now</a>
-          <a href="#">Categories</a>
-          <a href="#">Deals</a>
-          <a href="#">Sell</a>
+          <Link to="/popular">Popular Now</Link>
+          <Link to="/categories">Categories</Link>
+          <Link to="/deals">Deals</Link>
+          <Link to="/sell">Sell</Link>
         </nav>
       </div>
+
       <div className="navbar-actions">
-        <input className="navbar-search" placeholder="🔍  Search for anything..." />
-        <div className="navbar-auth">Login · Signup</div>
+        <input
+          className="navbar-search"
+          placeholder="🔍  Search for anything..."
+        />
+
+        <div className="navbar-auth">
+          {!user ? (
+            <>
+              <Link to="/login">Login</Link>
+              {" · "}
+              <Link to="/signup">Signup</Link>
+            </>
+          ) : (
+            <>
+              <span style={{ marginRight: "8px" }}>
+                {user.email}
+              </span>
+              <button onClick={handleLogout} className="logout-btn">
+                Logout
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
