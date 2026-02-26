@@ -29,7 +29,7 @@ export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
           <Link to="/popular">Popular Now</Link>
           <Link to="/categories">Categories</Link>
           <Link to="/deals">Deals</Link>
-          <Link to="/sell">Sell</Link>
+          <Link to="/create">Sell</Link>
         </nav>
       </div>
 
@@ -43,7 +43,6 @@ export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
           {!user ? (
             <>
               <Link to="/login">Login</Link>
-              {" · "}
               <Link to="/signup">Signup</Link>
             </>
           ) : (

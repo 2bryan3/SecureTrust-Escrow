@@ -83,4 +83,20 @@
   transition: color 0.2s;
   white-space: nowrap;
 }
-.navbar-auth:hover { color: var(--text); }
+
+.navbar-auth a:not(:last-child)::after {
+  content: "·  ";
+  margin-left: 6px;
+  color: var(--muted);
+}
+
+.navbar-auth a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.navbar-auth a:hover {
+  color: var(--text);
+}
+

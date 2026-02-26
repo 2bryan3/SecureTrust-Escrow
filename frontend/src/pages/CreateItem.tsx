@@ -7,6 +7,8 @@ import type { ListingInput } from "../types/listing.types";
 import { Footer } from "../components/Footer";
 import "../styles/CreateItem.css";
 
+console.log("CreateItem rendered");
+
 export const CreateItem = () => {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");

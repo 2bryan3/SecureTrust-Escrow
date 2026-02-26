@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
+import "../styles/Auth.css"
 
 export default function Login() {
   const { login } = useAuth();
@@ -23,17 +24,33 @@ export default function Login() {
   }
 
   return (
-    <form onSubmit={onSubmit} style={{ maxWidth: 360 }}>
-      <h1>Login</h1>
-      {err && <p style={{ color: "crimson" }}>{err}</p>}
-      <input placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+  <div className="auth-page">
+    <form onSubmit={onSubmit} className="auth-card">
+      <h1>Welcome Back</h1>
+      <p className="auth-subtitle">Sign in to continue</p>
+
+      {err && <p className="auth-error">{err}</p>}
+
       <input
-        placeholder="password"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <input
+        placeholder="Password"
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <button type="submit">Sign in</button>
+
+      <button type="submit" className="primary-btn">
+        Sign In
+      </button>
+      <p className="auth-switch">
+        Don’t have an account? <span onClick={() => nav("/signup")}>Sign up</span>
+      </p>
     </form>
-  );
+  </div>
+);
 }
