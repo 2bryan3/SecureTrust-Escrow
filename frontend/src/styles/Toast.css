@@ -1,0 +1,39 @@
+:root {
+  --bg:        #080c14;
+  --surface:   #0e1420;
+  --card:      #131926;
+  --card-hover:#16202e;
+  --accent:    #3b82f6;
+  --accent2:   #06b6d4;
+  --gold:      #f59e0b;
+  --text:      #f0f4ff;
+  --muted:     #8b97b0;
+  --border:    rgba(255, 255, 255, 0.07);
+  --font-display: 'Inter', sans-serif;
+  --font-body:    'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.home-page {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-align: center;
+  margin: 0;
+  padding: 1.5rem 2.5rem 0;
+}
