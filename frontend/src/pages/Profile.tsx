@@ -34,7 +34,8 @@ export default function Profile() {
                     <div className="profile-container">
                         <img className="profile-pic" src="https://i.pinimg.com/236x/dd/f0/11/ddf0110aa19f445687b737679eec9cb2.jpg"></img>
                         <button className="change-pic-button">Change Profile Picture</button>
-                        <h1 className="profile-name">Username</h1>
+                        <h1 className="profile-name">David Aduku</h1>
+                        <h2 className="profile-date">Member since 2026</h2>
                         <h2 className="profile-sales">14 Total Sales</h2>
                     </div>
                 </div>
