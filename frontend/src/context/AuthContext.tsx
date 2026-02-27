@@ -6,7 +6,7 @@ import { api } from "../api/api";
 export type AuthContextType = {
   user: User | null;
   loading: boolean;
-  signup: (email: string, password: string, name?: string) => Promise<void>;
+  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -25,15 +25,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await axios.get(`${API_BASE_URL}/auth/me`, {
         withCredentials: true,
       });
+      console.log("refreshUser response:", response.data);
       setUser(response.data.user);
     } catch (error) {
       setUser(null);
     }
   };
 
-  async function signup(email: string, password: string, name?: string) {
-  const data = await api<User>("/auth/signup", { method: "POST", body: { email, password, name } });
+  async function signup(email: string, password: string, firstName: string, lastName: string) {
+  const data = await api<User>("/auth/signup", { method: "POST", body: { email, password, firstName, lastName } });
   setUser(data);
+  console.log("API_BASE:", import.meta.env.VITE_API_BASE_URL);
 }
 
 async function login(email: string, password: string) {

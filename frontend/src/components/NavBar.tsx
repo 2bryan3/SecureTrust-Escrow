@@ -1,28 +1,18 @@
-// src/components/Navbar.tsx
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/NavBar.css";
+import { UserAvatar } from "./UserAvatar";
 
-type NavbarProps = {
-  logo?: string;
-};
+type NavbarProps = { logo?: string };
 
 export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  async function handleLogout() {
-    await logout();
-    navigate("/");
-  }
+  const { user, loading } = useAuth();
 
   return (
     <header className="navbar">
       {/* Logo */}
-      <Link to="/" className="navbar-logo">
-        {logo}
-      </Link>
+      <Link to="/" className="navbar-logo">{logo}</Link>
 
       <div className="navbar-center">
         <nav className="navbar-links">
@@ -30,7 +20,7 @@ export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
           <Link to="/categories">Categories</Link>
           <Link to="/deals">Deals</Link>
           <Link to="/create">Sell</Link>
-          <Link to="/Profile">Profile</Link>
+          <Link to="/profile">Profile</Link>
         </nav>
       </div>
 
@@ -41,19 +31,14 @@ export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
         />
 
         <div className="navbar-auth">
-          {!user ? (
+          {loading ? (
+            <span>Loading...</span>
+          ) : user ? (
+            <UserAvatar />
+          ) : (
             <>
               <Link to="/login">Login</Link>
               <Link to="/signup">Signup</Link>
-            </>
-          ) : (
-            <>
-              <span style={{ marginRight: "8px" }}>
-                {user.email}
-              </span>
-              <button onClick={handleLogout} className="logout-btn">
-                Logout
-              </button>
             </>
           )}
         </div>

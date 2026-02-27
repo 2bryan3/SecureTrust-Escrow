@@ -14,29 +14,27 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(null);
+ async function onSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setErr(null);
 
-    // 🔒 Basic validation
-    if (password !== confirmPassword) {
-      setErr("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 6) {
-      setErr("Password must be at least 6 characters");
-      return;
-    }
-
-    try {
-      const fullName = `${firstName} ${lastName}`;
-      await signup(email, password, fullName);
-      nav("/", { replace: true });
-    } catch (e: any) {
-      setErr(e.message ?? "Signup failed");
-    }
+  if (password !== confirmPassword) {
+    setErr("Passwords do not match");
+    return;
   }
+
+  if (password.length < 6) {
+    setErr("Password must be at least 6 characters");
+    return;
+  }
+
+  try {
+    await signup(email, password, firstName, lastName); // send separately
+    nav("/", { replace: true });
+  } catch (e: any) {
+    setErr(e.message ?? "Signup failed");
+  }
+}
 
   return (
     <div className="auth-page">
