@@ -1,33 +1,35 @@
-// src/components/ListingCard.tsx
 import React from "react";
 import "../styles/ListingCard.css";
 import type { ListingData } from "../types/listing.types";
+import { useNavigate } from "react-router-dom";
 
 type ListingCardProps = {
   listing: ListingData;
-  onClick: () => void;
+  onClick?: () => void;
 };
 
 // Derive a simple condition tag from listing data.
-// Adjust this logic to match your actual ListingData shape.
 const getTag = (listing: ListingData) => {
-  if (listing.isSold) return null; // sold badge already shown
-  
-  // "New" if listed within the last 7 days
+  if (listing.isSold) return null;
+
   const isNew = (Date.now() - new Date(listing.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
   if (isNew) return { label: "New", cls: "dl-card-tag--new" };
-  
-  // "Escrow" if price is over $100
+
   if (listing.price >= 100) return { label: "Escrow", cls: "dl-card-tag--escrow" };
-  
+
   return null;
 };
 
-export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
+export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
+  const navigate = useNavigate();
   const tag = getTag(listing);
 
+  const handleClick = () => {
+    navigate(`/listing/${listing._id}`);
+  };
+
   return (
-    <article className="dl-card" onClick={onClick}>
+    <article className="dl-card" onClick={handleClick}>
       <div className="dl-card-image-wrapper">
         <img
           className="dl-card-image"

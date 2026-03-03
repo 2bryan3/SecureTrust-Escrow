@@ -13,12 +13,14 @@ export const HomePage = () => {
   return (
     <div className="home-page">
       <NavBar />
-      <HeroBanner />
-      <StatsStrip />
-      <CategoryChips />
-      <h2 className="section-title">New Listings</h2>
-      <ListingGrid items={sampleListings} myListings={false} />
-      <Footer />
+      <div className="home-content">
+        <HeroBanner />
+        <StatsStrip />
+        <CategoryChips />
+        <h2 className="section-title">New Listings</h2>
+        <ListingGrid items={sampleListings} myListings={false} />
+        <Footer />
+      </div>
     </div>
   );
 };
