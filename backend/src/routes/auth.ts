@@ -41,6 +41,8 @@ router.post("/signup", async (req, res) => {
     firstName: user.firstName,
     lastName: user.lastName,
     avatar: user.avatar,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
   });
 });
 
@@ -64,6 +66,8 @@ router.post("/login", async (req, res) => {
     firstName: user.firstName,
     lastName: user.lastName,
     avatar: user.avatar,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
   });
 });
 

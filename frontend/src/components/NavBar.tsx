@@ -20,7 +20,6 @@ export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
           <Link to="/categories">Categories</Link>
           <Link to="/deals">Deals</Link>
           <Link to="/create">Sell</Link>
-          <Link to="/profile">Profile</Link>
         </nav>
       </div>
 

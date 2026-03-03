@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UserModel } from "../models/User";
+import { create } from "node:domain";
 
 const router = Router();
 
@@ -18,6 +19,8 @@ router.post("/test-create-user", async (req, res) => {
     firstName: user.firstName,
     lastName: user.lastName,
     avatar: user.avatar,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
   });
 });
 

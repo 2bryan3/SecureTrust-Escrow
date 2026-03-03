@@ -4,9 +4,11 @@ import { HomePage } from "../pages/HomePage";
 import { CreateItem } from "../pages/CreateItem";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
-import Dashboard from "../pages/Dashboard";
-import { RequireAuth } from "../context/RequireAuth";
+//import { RequireAuth } from "../context/RequireAuth";
 import Profile from "../pages/Profile";
+import { ViewListing } from "../pages/ViewListing";
+import { MediatorPage } from "../pages/MediatorPage";
+import { AdminPage } from "../pages/AdminPage";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -15,8 +17,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/create" element={<CreateItem />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/listing/:id" element={<ViewListing />} />
+      <Route path="/mediator" element={<MediatorPage />} />
+      <Route path="/admin" element={<AdminPage />} />
     </Routes>
   );
 };

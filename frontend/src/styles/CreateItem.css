@@ -3,9 +3,10 @@
 /* ── Page shell ── */
 .cl-main {
   width: 100%;
-  min-height: 100vh;
+  overflow-y: auto;
   background: var(--bg);
   padding: 48px 24px 96px;
+  flex: 1;
 }
 
 .cl-page {
@@ -214,19 +215,12 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
-.cl-dropdown-item input[type="checkbox"] {
+.cl-dropdown-item input[type="radio"] {
   width: 15px;
   height: 15px;
   accent-color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
-}
-
-/* ── Upload wrapper ── */
-.cl-upload-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 /* ── Submit button ── */
@@ -278,5 +272,67 @@
 
   .cl-title {
     font-size: 1.4rem;
+  }
+}
+
+/* ── Dynamic fields section ── */
+.cl-dynamic-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.cl-dynamic-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.cl-dynamic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Select inputs match text inputs */
+.cl-field select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b97b0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.cl-field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.cl-field select option {
+  background: var(--card);
+  color: var(--text);
+}
+
+@media (max-width: 600px) {
+  .cl-dynamic-grid {
+    grid-template-columns: 1fr;
   }
 }

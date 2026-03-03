@@ -1,73 +1,132 @@
+/* frontend/src/styles/Profile.css */
 .profile {
-  width: 100%;
-  min-height: 100vh;
-  background: var(--bg);
-  padding: 48px 24px 96px;
+  background: #080c14;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;     /* prevents any overflow from causing scroll */
 }
 
 .profile-page {
-  max-width: 680px;
-  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;        /* vertically center the card */
+  padding: 2rem 1rem;
+  background: #080c14;
+  color: var(--text);
 }
 
+/* Profile card */
 .profile-container {
+  max-width: 520px;
+  width: 100%;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 32px;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  gap: 0.75rem;              /* tighter gap so card is more compact */
+  box-sizing: border-box;
+  /* removed max-height and overflow-y — let content size naturally */
 }
 
-.profile-pic {
-    padding: 32px 32px 4px;
-    align-self: center;
-}
-
-.change-pic-button {
-  width: fit-content;
-  align-self: center;
-  padding: 14px;
+/* Initials avatar */
+.profile-pic-initials {
+  width: 90px;               /* slightly smaller */
+  height: 90px;
+  border-radius: 50%;
   background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  letter-spacing: 0.01em;
-  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-}
-
-.profile-name {
-  font-family: var(--font-display);
+  color: white;
   font-size: 2rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  margin-bottom: 16px;
-  margin-top: 16px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--accent2);
+  margin-bottom: 0.25rem;
 }
 
-.profile-sales {
+/* Profile info text */
+.profile-name {
   font-family: var(--font-display);
-  font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  margin-bottom: 32px;
-  text-align: center;
+  font-size: 1.5rem;
 }
 
-.profile-date {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+.profile-email,
+.profile-date,
+.profile-sales,
+.profile-rating {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* Password change section */
+.password-change {
+  margin-top: 1rem;          /* reduced from 2rem */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.password-change label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.password-field {
+  position: relative;
+  width: 100%;
+}
+
+.password-field input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-hover);
   color: var(--text);
-  margin-bottom: 32px;
-  text-align: center;
+  font-size: 1rem;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.password-field button {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0;
+  font-size: 1rem;
+}
+
+.password-field button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.save-password-btn {
+  margin-top: 0.5rem;
+  padding: 0.65rem 1.3rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  align-self: flex-start;
+}
+
+.save-password-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }

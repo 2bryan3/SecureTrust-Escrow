@@ -1,4 +1,6 @@
-import React, { useRef } from "react";
+// src/components/UploadImages.tsx
+import React, { useRef, useState } from "react";
+import "../styles/UploadImages.css";
 
 interface UploadImagesProps {
   files: File[];
@@ -12,72 +14,49 @@ export const UploadImages: React.FC<UploadImagesProps> = ({
   onRemoveFile,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     onFilesSelected(Array.from(e.target.files));
+    // reset input so same file can be re-added if removed
+    e.target.value = "";
   };
 
-  return (
-    <div
-      style={{
-        background: "white",
-        padding: "16px",
-        borderRadius: "12px",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
-        position: "relative",
-        border: "1px solid #e5e5e5",
-      }}
-    >
-      <div style={{ fontSize: "18px", fontWeight: 600, marginBottom: "6px", color: "black" }}>
-        Upload Images
-      </div>
-      {files.length > 0 ? (
-        <div style={{ fontSize: "14px", color: "#555", marginBottom: "10px" }}>
-          {files.map((file, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "4px",
-              }}
-            >
-              <span>{file.name}</span>
-              <button
-                onClick={() => onRemoveFile(index)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "16px",
-                  cursor: "pointer",
-                  color: "#333",
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ color: "#888", marginBottom: "12px" }}>
-          No images uploaded.
-        </div>
-      )}
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    const dropped = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith("image/")
+    );
+    if (dropped.length) onFilesSelected(dropped);
+  };
 
-      <button
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = () => setDragging(false);
+
+  return (
+    <div className="upload-wrapper">
+      <label className="upload-label">Images</label>
+
+      {/* Drop zone */}
+      <div
+        className={`upload-dropzone ${dragging ? "upload-dropzone--active" : ""}`}
         onClick={() => fileInputRef.current?.click()}
-        style={{
-          padding: "6px 14px",
-          borderRadius: "8px",
-          backgroundColor: "#f3f3f3",
-          border: "1px solid #c7c7c7",
-          cursor: "pointer",
-        }}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
       >
-        Browse
-      </button>
+        <div className="upload-icon">📁</div>
+        <p className="upload-hint">
+          Drag & drop images here, or <span className="upload-browse">browse</span>
+        </p>
+        <p className="upload-sub">PNG, JPG, WEBP up to 10MB each</p>
+      </div>
 
       <input
         type="file"
@@ -87,6 +66,29 @@ export const UploadImages: React.FC<UploadImagesProps> = ({
         onChange={handleFileChange}
         style={{ display: "none" }}
       />
+
+      {/* Preview grid */}
+      {files.length > 0 && (
+        <div className="upload-preview-grid">
+          {files.map((file, index) => (
+            <div key={index} className="upload-preview-item">
+              <img
+                src={URL.createObjectURL(file)}
+                alt={file.name}
+                className="upload-preview-img"
+              />
+              <button
+                className="upload-preview-remove"
+                onClick={() => onRemoveFile(index)}
+                title="Remove"
+              >
+                ✕
+              </button>
+              <div className="upload-preview-name">{file.name}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
