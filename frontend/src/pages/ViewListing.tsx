@@ -109,14 +109,23 @@ export const ViewListing: React.FC = () => {
             </div>
 
             {/* Manage Sale — only show to owner */}
-            {isOwner && (
+            {/* {isOwner && (
               <button
                 className="vl-dashboard-btn"
                 onClick={() => setShowDashboard(true)}
               >
                 Manage Sale
               </button>
-            )}
+            )} */}
+
+             {/* For demo purposes, show dashboard button to everyone */}
+              <button
+                className="vl-dashboard-btn"
+                onClick={() => setShowDashboard(true)}
+              >
+                Manage Sale
+              </button>
+          
 
             {showDashboard && (
               <ListingDashboardPopup
