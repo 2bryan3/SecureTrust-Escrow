@@ -1,152 +1,14 @@
-// src/pages/CreateItem.tsx
+// frontend/src/pages/CreateItem.tsx
 import React, { useState, useRef, useEffect } from "react";
-import { NavBar } from "../components/Navbar";
+import axios from "axios";
+import { NavBar } from "../components/NavBar";
 import { UploadImages } from "../components/UploadImages";
 import { ToastPortal } from "../components/ToastPortal";
 import type { ListingInput } from "../types/listing.types";
 import { Footer } from "../components/Footer";
 import "../styles/CreateItem.css";
+import { categoryFields, allCategories } from "../data/categoryFields";
 
-// ── Category definitions ──────────────────────────────────────────────────────
-type FieldType = "text" | "number" | "select";
-
-interface CategoryField {
-  label: string;
-  key: string;
-  type: FieldType;
-  options?: string[]; // only for select type
-  placeholder?: string;
-}
-
-const categoryFields: Record<string, CategoryField[]> = {
-  Vehicles: [
-    { label: "Make", key: "make", type: "text", placeholder: "e.g. Toyota" },
-    { label: "Model", key: "model", type: "text", placeholder: "e.g. Camry" },
-    { label: "Year", key: "year", type: "number", placeholder: "e.g. 2020" },
-    { label: "Mileage", key: "mileage", type: "number", placeholder: "e.g. 45000" },
-    {
-      label: "Condition",
-      key: "condition",
-      type: "select",
-      options: ["New", "Like New", "Good", "Fair", "Poor"],
-    },
-    { label: "Color", key: "color", type: "text", placeholder: "e.g. Black" },
-    {
-      label: "Transmission",
-      key: "transmission",
-      type: "select",
-      options: ["Automatic", "Manual", "CVT"],
-    },
-    {
-      label: "Fuel Type",
-      key: "fuelType",
-      type: "select",
-      options: ["Gasoline", "Diesel", "Electric", "Hybrid"],
-    },
-  ],
-  Electronics: [
-    { label: "Brand", key: "brand", type: "text", placeholder: "e.g. Sony" },
-    { label: "Model", key: "model", type: "text", placeholder: "e.g. WH-1000XM5" },
-    {
-      label: "Condition",
-      key: "condition",
-      type: "select",
-      options: ["New", "Like New", "Good", "Fair", "Poor"],
-    },
-    { label: "Storage / Specs", key: "specs", type: "text", placeholder: "e.g. 256GB, 16GB RAM" },
-    {
-      label: "Includes Original Box",
-      key: "originalBox",
-      type: "select",
-      options: ["Yes", "No"],
-    },
-  ],
-  Fashion: [
-    { label: "Brand", key: "brand", type: "text", placeholder: "e.g. Nike" },
-    { label: "Size", key: "size", type: "text", placeholder: "e.g. M, 10, 32x30" },
-    { label: "Color", key: "color", type: "text", placeholder: "e.g. Black" },
-    {
-      label: "Condition",
-      key: "condition",
-      type: "select",
-      options: ["New with tags", "New without tags", "Like New", "Good", "Fair"],
-    },
-    {
-      label: "Gender",
-      key: "gender",
-      type: "select",
-      options: ["Men", "Women", "Unisex", "Kids"],
-    },
-  ],
-  Furniture: [
-    { label: "Material", key: "material", type: "text", placeholder: "e.g. Wood, Metal" },
-    { label: "Dimensions", key: "dimensions", type: "text", placeholder: "e.g. 60x30x45 inches" },
-    { label: "Color", key: "color", type: "text", placeholder: "e.g. Walnut" },
-    {
-      label: "Condition",
-      key: "condition",
-      type: "select",
-      options: ["New", "Like New", "Good", "Fair", "Poor"],
-    },
-    {
-      label: "Assembly Required",
-      key: "assembly",
-      type: "select",
-      options: ["Yes", "No"],
-    },
-  ],
-  Books: [
-    { label: "Author", key: "author", type: "text", placeholder: "e.g. J.R.R. Tolkien" },
-    { label: "ISBN", key: "isbn", type: "text", placeholder: "e.g.  978-0358653035" },
-    {
-      label: "Condition",
-      key: "condition",
-      type: "select",
-      options: ["New", "Like New", "Good", "Acceptable"],
-    },
-    {
-      label: "Edition",
-      key: "edition",
-      type: "text",
-      placeholder: "e.g. 1st Edition",
-    },
-    {
-      label: "Genre",
-      key: "genre",
-      type: "select",
-      options: ["Fiction", "Non-Fiction", "Textbook", "Comics", "Children", "Other"],
-    },
-  ],
-  Gaming: [
-    { label: "Platform", key: "platform", type: "select", options: ["PS5", "PS4", "Xbox Series X", "Xbox One", "Nintendo Switch", "PC", "Other"] },
-    { label: "Publisher", key: "publisher", type: "text", placeholder: "e.g. EA, Activision" },
-    {
-      label: "Condition",
-      key: "condition",
-      type: "select",
-      options: ["New", "Like New", "Good", "Fair", "Poor"],
-    },
-    {
-      label: "Includes Original Case",
-      key: "originalCase",
-      type: "select",
-      options: ["Yes", "No", "Digital Copy"],
-    },
-  ],
-  Services: [
-    {
-      label: "Service Type",
-      key: "serviceType",
-      type: "select",
-      options: ["Repair", "Cleaning", "Tutoring", "Design", "Photography", "Other"],
-    },
-    { label: "Location / Remote", key: "location", type: "text", placeholder: "e.g. Miami, FL or Remote" },
-    { label: "Availability", key: "availability", type: "text", placeholder: "e.g. Weekends, Mon-Fri 9-5" },
-    { label: "Experience", key: "experience", type: "text", placeholder: "e.g. 5 years" },
-  ],
-};
-
-const allCategories = Object.keys(categoryFields);
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export const CreateItem = () => {
@@ -157,7 +19,9 @@ export const CreateItem = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "local_pickup" | "">("");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -183,13 +47,8 @@ export const CreateItem = () => {
     });
   }, [selectedCategories]);
 
-  const handleAddFiles = (newFiles: File[]) => {
-    setFiles((prev) => [...prev, ...newFiles]);
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  const handleAddFiles = (newFiles: File[]) => setFiles((prev) => [...prev, ...newFiles]);
+  const handleRemoveFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index));
 
   const filesToBase64 = (files: File[]): Promise<string[]> =>
     Promise.all(
@@ -209,21 +68,28 @@ export const CreateItem = () => {
   };
 
   const handleSubmit = async () => {
+    if (!title.trim() || !description.trim() || !price || !deliveryMethod) {
+      setToast({ message: "Please fill in title, description, price, and delivery method.", type: "error" });
+      return;
+    }
+
     try {
-      const priceValue = Number(price);
+      setLoading(true);
       const images = await filesToBase64(files);
 
       const listingData: ListingInput = {
         title,
-        price: priceValue,
+        price: Number(price),
         description,
         categories: selectedCategories,
         images,
-        // attributes, // uncomment when backend supports it
+        attributes,
+        deliveryMethod,
       };
 
-      // TODO: Wire up API
-      // await axios.post(`${import.meta.env.VITE_API_URL}/listings/create`, listingData, { withCredentials: true });
+      await axios.post(`/api/listings/create`, listingData, {
+        withCredentials: true,
+      });
 
       setToast({ message: "Listing created successfully!", type: "success" });
       setTitle("");
@@ -231,14 +97,17 @@ export const CreateItem = () => {
       setSelectedCategories([]);
       setDescription("");
       setFiles([]);
+      setDeliveryMethod("");
       setAttributes({});
     } catch (err: any) {
-      setToast({ message: "Failed to create listing", type: "error" });
+      const message = err.response?.data?.error ?? "Failed to create listing.";
+      setToast({ message, type: "error" });
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Deduplicate fields when multiple categories share keys (e.g. "condition")
   const dynamicFields = (() => {
     const seen = new Set<string>();
     return selectedCategories.flatMap((cat) =>
@@ -261,7 +130,6 @@ export const CreateItem = () => {
 
           <div className="cl-form-container">
 
-            {/* Title */}
             <div className="cl-field">
               <label>Title</label>
               <input
@@ -271,7 +139,6 @@ export const CreateItem = () => {
               />
             </div>
 
-            {/* Price */}
             <div className="cl-field">
               <label>Price</label>
               <div className="cl-price-wrap">
@@ -288,7 +155,32 @@ export const CreateItem = () => {
               </div>
             </div>
 
-            {/* Categories */}
+            <div className="cl-field">
+              <label>Delivery Method</label>
+              <div className="cl-radio-group">
+                <label className="cl-radio-option">
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="shipping"
+                    checked={deliveryMethod === "shipping"}
+                    onChange={() => setDeliveryMethod("shipping")}
+                  />
+                  <span>Shipping</span>
+                </label>
+                <label className="cl-radio-option">
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="local_pickup"
+                    checked={deliveryMethod === "local_pickup"}
+                    onChange={() => setDeliveryMethod("local_pickup")}
+                  />
+                  <span>Local Pickup</span>
+                </label>
+              </div>
+            </div>
+
             <div className="cl-field">
               <label>Categories</label>
               <div className="cl-multiselect" ref={dropdownRef}>
@@ -329,9 +221,7 @@ export const CreateItem = () => {
                           checked={selectedCategories.includes(cat)}
                           onChange={() =>
                             setSelectedCategories((prev) =>
-                              prev.includes(cat)
-                                ? []
-                                : [cat]
+                              prev.includes(cat) ? [] : [cat]
                             )
                           }
                         />
@@ -343,7 +233,6 @@ export const CreateItem = () => {
               </div>
             </div>
 
-            {/* Dynamic category-specific fields */}
             {dynamicFields.length > 0 && (
               <div className="cl-dynamic-section">
                 <div className="cl-dynamic-title">Item Details</div>
@@ -375,7 +264,6 @@ export const CreateItem = () => {
               </div>
             )}
 
-            {/* Description */}
             <div className="cl-field">
               <label>Description</label>
               <textarea
@@ -386,16 +274,18 @@ export const CreateItem = () => {
               />
             </div>
 
-            {/* Images */}
             <UploadImages
               files={files}
               onFilesSelected={handleAddFiles}
               onRemoveFile={handleRemoveFile}
             />
 
-            {/* Submit */}
-            <button className="cl-submit-btn" onClick={handleSubmit}>
-              Submit Listing
+            <button
+              className="cl-submit-btn"
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? "Submitting..." : "Submit Listing"}
             </button>
           </div>
         </div>

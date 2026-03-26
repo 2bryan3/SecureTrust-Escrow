@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const refreshUser = async () => {
     try {
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signup(email: string, password: string, firstName: string, lastName: string) {
   const data = await api<User>("/auth/signup", { method: "POST", body: { email, password, firstName, lastName } });
   setUser(data);
-  console.log("API_BASE:", import.meta.env.VITE_API_BASE_URL);
+  console.log("API_BASE:", import.meta.env.VITE_API_URL);
 }
 
 async function login(email: string, password: string) {

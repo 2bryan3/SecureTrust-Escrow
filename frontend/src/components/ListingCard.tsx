@@ -1,31 +1,63 @@
-import React from "react";
+import React, { useState } from "react";
 import "../styles/ListingCard.css";
 import type { ListingData } from "../types/listing.types";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 type ListingCardProps = {
   listing: ListingData;
   onClick?: () => void;
 };
 
-// Derive a simple condition tag from listing data.
 const getTag = (listing: ListingData) => {
   if (listing.isSold) return null;
-
   const isNew = (Date.now() - new Date(listing.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
   if (isNew) return { label: "New", cls: "dl-card-tag--new" };
-
   if (listing.price >= 100) return { label: "Escrow", cls: "dl-card-tag--escrow" };
-
   return null;
 };
 
 export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const tag = getTag(listing);
+
+  const [favorited, setFavorited] = useState(listing.isFavorited ?? false);
+  const [loading, setLoading] = useState(false);
 
   const handleClick = () => {
     navigate(`/listing/${listing._id}`);
+  };
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (loading) return;
+    setLoading(true);
+
+    // Optimistic update
+    setFavorited(prev => !prev);
+
+    try {
+      const res = await fetch(`/api/listings/favorite/${listing._id}`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        // Revert if failed
+        setFavorited(prev => !prev);
+      }
+    } catch {
+      setFavorited(prev => !prev);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,14 +70,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
         />
         {listing.isSold && <span className="dl-card-sold">SOLD</span>}
         <button
-          className="dl-card-fav"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Save to favourites"
+          className={`dl-card-fav ${favorited ? "dl-card-fav--active" : ""}`}
+          onClick={handleFavorite}
+          aria-label={favorited ? "Remove from favourites" : "Save to favourites"}
         >
-          🤍
+          {favorited ? "❤️" : "🤍"}
         </button>
       </div>
-
       <div className="dl-card-body">
         <h3 className="dl-card-title">{listing.title}</h3>
         <div className="dl-card-price-row">

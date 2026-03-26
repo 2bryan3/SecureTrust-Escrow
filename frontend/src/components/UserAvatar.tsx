@@ -18,6 +18,13 @@ export const UserAvatar: React.FC = () => {
     }
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -30,11 +37,14 @@ export const UserAvatar: React.FC = () => {
 
   if (!user) return null;
 
-  // Safe access to initials
-  const initials = `${user.firstName?.[0] ?? "?"}${user.lastName?.[0] ?? "?"}`.toUpperCase();
+  const initials = `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase();
 
   return (
     <div className="user-avatar-container" ref={ref}>
+      <span className="user-greeting">
+        {getGreeting()}, {user.firstName || user.username}!
+      </span>
+
       <div
         className="user-avatar-circle"
         onClick={() => setOpen((prev) => !prev)}

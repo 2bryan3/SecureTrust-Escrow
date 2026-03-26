@@ -104,3 +104,31 @@
 .auth-row input {
   width: 100%;
 }
+
+.auth-password-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.auth-password-wrap input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.auth-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted, #8b97b0);
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.auth-eye-btn:hover {
+  color: var(--text, #f0f4ff);
+}

@@ -1,21 +1,35 @@
-import type { User } from "../types/user.type"
-export type ListingInput =  {
-    title: string,
-    description: string,
-    price: number,
-    categories: string[],
-    images: string[]
+// frontend/src/types/listing.types.ts
+
+export interface ListingUser {
+  _id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
 }
 
-export type ListingData = {
-    title: string,
-    description: string,
-    price: number,
-    _id: string,
-    createdAt: string,
-    updatedAt: string
-    categories: string[],
-    images: string[],
-    user: User,
-    isSold: boolean
+export interface ListingData {
+  _id: string;
+  title: string;
+  description: string;
+  price: number;
+  categories: string[];
+  images: string[];       // base64 strings from ListingImage docs
+  user: ListingUser;   
+  isSold: boolean;
+  deliveryMethod: "shipping" | "local_pickup";
+  createdAt: string;
+  updatedAt: string;
+  isFavorited?: boolean;
+  attributes?: Record<string, string>;
+}
+
+export interface ListingInput {
+  title: string;
+  description: string;
+  price: number;
+  categories: string[];
+  images: string[];
+  deliveryMethod: "shipping" | "local_pickup";
+  attributes?: Record<string, string>;
 }
