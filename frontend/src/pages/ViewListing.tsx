@@ -2,28 +2,75 @@ import React, { useEffect, useState } from "react";
 import "../styles/ViewListing.css";
 import { useNavigate, useParams } from "react-router-dom";
 import type { ListingData } from "../types/listing.types";
+import type { TransactionData } from "../types/transaction.types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ListingDashboardPopup } from "../components/ListingDashboardPopup";
 import { EditListingPopup } from "../components/EditListingPopup";
 import { useAuth } from "../context/AuthContext";
 
+// ── Build a mock transaction for demo / dev purposes ─────────────────────────
+// TODO: Replace with real API call (GET /api/transactions?listingId=...) once
+// the buy flow is wired up end-to-end.
+const buildMockTransaction = (
+  listing: ListingData,
+  currentUserId: string,
+  role: "buyer" | "seller" = "buyer"
+): TransactionData => ({
+  _id: "mock_tx_001",
+  buyerId:  role === "buyer" ? currentUserId : "mock_other_user",
+  sellerId: role === "seller" ? currentUserId : "mock_other_user",
+  listingId: {
+    _id:    listing._id,
+    title:  listing.title,
+    images: listing.images,
+    price:  listing.price,
+  },
+  amount:       listing.price,
+  escrowAmount: 0,
+  currency:     "USD",
+  status:       "milestone1",
+  initiatedBy:  "buyer",
+  terms:        null,
+  cancelledAt:  null,
+  cancelledBy:  null,
+  createdAt:    listing.createdAt,
+  updatedAt:    listing.updatedAt,
+  milestone1: {
+    packageImageUrl:     null,
+    trackingNumber:      null,
+    trackingCarrier:     null,
+    sellerSubmittedAt:   null,
+    buyerFundsDeposited: false,
+    buyerDepositedAt:    null,
+    depositTxRef:        null,
+    status:              "pending",
+  },
+  milestone2: {
+    buyerConfirmed:   false,
+    buyerConfirmedAt: null,
+    buyerConfirmNote: null,
+    fundsReleasedAt:  null,
+    releaseTxRef:     null,
+    status:           "locked",
+  },
+});
+
 export const ViewListing: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
 
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<ListingData>();
-  const [error, setError] = useState<string | null>(null);
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
-  const [currentImage, setCurrentImage] = useState(0);
-  const [attribsOpen, setAttribsOpen] = useState(false);
+  const [loading, setLoading]               = useState(true);
+  const [data, setData]                     = useState<ListingData>();
+  const [error, setError]                   = useState<string | null>(null);
+  const [showDashboard, setShowDashboard]   = useState(false);
+  const [showEdit, setShowEdit]             = useState(false);
+  const [currentImage, setCurrentImage]     = useState(0);
+  const [transaction, setTransaction]       = useState<TransactionData | null>(null);
+
   const formatKey = (key: string) =>
-    key
-      .replace(/([A-Z])/g, " $1")
-      .replace(/^./, str => str.toUpperCase())
-      .trim();
+    key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase()).trim();
 
   const isOwner = user && data && user._id === data.user._id;
 
@@ -49,9 +96,42 @@ export const ViewListing: React.FC = () => {
     setShowEdit(false);
   };
 
+  // Opens the dashboard popup.
+  // TODO: swap buildMockTransaction for a real fetch once buy flow is ready:
+  //   const res = await fetch(`/api/transactions?listingId=${data._id}`, { credentials: "include" });
+  //   const { transaction } = await res.json();
+  //   setTransaction(transaction);
+  const handleManageSale = () => {
+    if (!data || !user) return;
+    const role = isOwner ? "seller" : "buyer";
+    setTransaction(buildMockTransaction(data, user._id, role));
+    setShowDashboard(true);
+  };
+
+  // TODO: wire up real buy flow — create transaction via POST /api/transactions
+  const handleBuyNow = async () => {
+    if (!data || !user) return;
+    alert("Buy now functionality coming soon!");
+    // const res = await fetch("/api/transactions", {
+    //   method: "POST",
+    //   credentials: "include",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     listingId: data._id,
+    //     buyerId: user._id,
+    //     sellerId: data.user._id,
+    //     amount: data.price,
+    //     initiatedBy: "buyer",
+    //   }),
+    // });
+    // const { transaction } = await res.json();
+    // setTransaction(transaction);
+    // setShowDashboard(true);
+  };
+
   if (loading) return <LoadingSpinner size="small" />;
-  if (error) return <p className="vl-error">Error: {error}</p>;
-  if (!data) return <p className="vl-error">No listing found.</p>;
+  if (error)   return <p className="vl-error">Error: {error}</p>;
+  if (!data)   return <p className="vl-error">No listing found.</p>;
 
   const hasAttributes = data.attributes && Object.keys(data.attributes).length > 0;
 
@@ -70,7 +150,7 @@ export const ViewListing: React.FC = () => {
 
       <div className="vl-page-layout">
 
-        {/* LEFT — images */}
+        {/* LEFT — images + seller */}
         <div className="vl-left">
           <div className="vl-main-image-wrapper">
             <img
@@ -94,7 +174,7 @@ export const ViewListing: React.FC = () => {
             </div>
           )}
 
-          {/* Seller — below images */}
+          {/* Seller card — below images */}
           <div className="vl-section" style={{ marginTop: "1.5rem" }}>
             <h2>Seller</h2>
             <div className="vl-seller-card">
@@ -113,84 +193,86 @@ export const ViewListing: React.FC = () => {
         </div>
 
         {/* RIGHT — details */}
-          <div className="vl-right">
+        <div className="vl-right">
 
-            {/* Categories */}
-            <div className="vl-tags">
-              {data.categories.map((tag, i) => (
-                <span key={i} className="vl-tag">{tag}</span>
-              ))}
-            </div>
-
-            {/* Title */}
-            <h1 className="vl-title">{data.title}</h1>
-
-            {/* Price + status */}
-            <div className="vl-price">${data.price.toLocaleString()}</div>
-            <p className="vl-status-label">
-              Status:{" "}
-              <span className={data.isSold ? "vl-status--sold" : "vl-status--available"}>
-                {data.isSold ? "Sold" : "Available"}
-              </span>
-            </p>
-
-            <p className="vl-status-label">
-              Delivery:{" "}
-              <span className="vl-delivery-method">
-                {data.deliveryMethod === "shipping" ? "Shipping" : "Local Pickup"}
-              </span>
-            </p>
-
-            <div className="vl-divider" />
-
-            {/* Description */}
-            <div className="vl-section">
-              <h2>Description</h2>
-              <p>{data.description}</p>
-            </div>
-
-            {/* Item details — always visible */}
-            {hasAttributes && (
-              <div className="vl-section">
-                <h2>Item Details</h2>
-                <div className="vl-attributes-grid">
-                  {Object.entries(data.attributes!).map(([key, value]) => (
-                    <div key={key} className="vl-attribute-row">
-                      <span className="vl-attribute-key">{formatKey(key)}</span>
-                      <span className="vl-attribute-value">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="vl-actions">
-              {!isOwner && !data.isSold && (
-                <button className="vl-btn-primary" onClick={() => alert("Buy now functionality coming soon!")}>
-                  Buy Now
-                </button>
-              )}
-              <button className="vl-btn-secondary" onClick={() => setShowDashboard(true)}>
-                Manage Sale
-              </button>
-            </div>
-
+          {/* Categories */}
+          <div className="vl-tags">
+            {data.categories.map((tag, i) => (
+              <span key={i} className="vl-tag">{tag}</span>
+            ))}
           </div>
 
-      {/* Popups */}
-      {showDashboard && (
+          {/* Title */}
+          <h1 className="vl-title">{data.title}</h1>
+
+          {/* Price + status */}
+          <div className="vl-price">${data.price.toLocaleString()}</div>
+          <p className="vl-status-label">
+            Status:{" "}
+            <span className={data.isSold ? "vl-status--sold" : "vl-status--available"}>
+              {data.isSold ? "Sold" : "Available"}
+            </span>
+          </p>
+
+          <p className="vl-status-label">
+            Delivery:{" "}
+            <span className="vl-delivery-method">
+              {data.deliveryMethod === "shipping" ? "Shipping" : "Local Pickup"}
+            </span>
+          </p>
+
+          <div className="vl-divider" />
+
+          {/* Description */}
+          <div className="vl-section">
+            <h2>Description</h2>
+            <p>{data.description}</p>
+          </div>
+
+          {/* Item details */}
+          {hasAttributes && (
+            <div className="vl-section">
+              <h2>Item Details</h2>
+              <div className="vl-attributes-grid">
+                {Object.entries(data.attributes!).map(([key, value]) => (
+                  <div key={key} className="vl-attribute-row">
+                    <span className="vl-attribute-key">{formatKey(key)}</span>
+                    <span className="vl-attribute-value">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="vl-actions">
+            {!isOwner && !data.isSold && (
+              <button className="vl-btn-primary" onClick={handleBuyNow}>
+                Buy Now
+              </button>
+            )}
+            <button className="vl-btn-secondary" onClick={handleManageSale}>
+              Manage Sale
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Dashboard popup */}
+      {showDashboard && transaction && (
         <ListingDashboardPopup
-          listingTitle={data.title}
-          deliveryMethod={data.deliveryMethod}
-          escrowAmount={data.price}
-          isOwner={!!isOwner}
+          transaction={transaction}
+          currentUserId={user!._id}
           listingID={data._id}
           sellerID={data.user._id}
           onClose={() => setShowDashboard(false)}
+          onTransactionUpdate={(updated) => setTransaction(updated)}
+          mockMode={true}
         />
       )}
 
+      {/* Edit popup */}
       {showEdit && (
         <EditListingPopup
           listingData={data}
@@ -198,7 +280,6 @@ export const ViewListing: React.FC = () => {
           onSuccess={handleEditSuccess}
         />
       )}
-    </div>
     </div>
   );
 };
