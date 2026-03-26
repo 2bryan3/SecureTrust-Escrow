@@ -1,0 +1,192 @@
+.vl-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-popup-box {
+  background: #0f1521;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  color: #ffffff;
+}
+
+.edit-popup-box::-webkit-scrollbar {
+  display: none;
+}
+
+.edit-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.edit-popup-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.edit-popup-header button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.edit-popup-header button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.edit-popup-box input,
+.edit-popup-box textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  outline: none;
+  font-family: inherit;
+}
+
+.edit-popup-box input:focus,
+.edit-popup-box textarea:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.edit-popup-box textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.edit-popup-box button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-popup-box button:not(.edit-popup-header button) {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.edit-popup-box button:not(.edit-popup-header button):hover {
+  background: #1d4ed8;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.edit-field > label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted, #8b97b0);
+}
+
+.edit-price-wrap {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.edit-price-symbol {
+  padding: 0 12px;
+  color: var(--muted, #8b97b0);
+  font-size: 0.95rem;
+}
+
+.edit-price-input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 10px 14px 10px 0 !important;
+}
+
+.edit-attributes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.edit-attribute-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-attribute-field label {
+  font-size: 0.75rem;
+  color: var(--muted, #8b97b0);
+}
+
+.edit-attribute-field input,
+.edit-attribute-field select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.edit-save-btn {
+  width: 100%;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.edit-save-btn:hover { background: #1d4ed8; }
+.edit-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }

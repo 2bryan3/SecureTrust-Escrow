@@ -1,5 +1,7 @@
 // src/components/Categories.tsx
 import React, { useState } from "react";
+import axios from "axios";
+import { useEffect } from "react";
 import "../styles/Categories.css";
 
 type CategoryChipsProps = {
@@ -7,13 +9,15 @@ type CategoryChipsProps = {
   onSelect?: (category: string) => void;
 };
 
-const defaultCategories = ["All", "Electronics", "Services", "Furniture", "Books", "Fashion", "Gaming"];
-
-export const CategoryChips: React.FC<CategoryChipsProps> = ({
-  categories = defaultCategories,
-  onSelect,
-}) => {
+export const CategoryChips: React.FC<{ onSelect?: (cat: string) => void }> = ({ onSelect }) => {
   const [active, setActive] = useState("All");
+  const [categories, setCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    axios.get("/api/listings/categories", { withCredentials: true })
+      .then(res => setCategories(["All", ...res.data]))
+      .catch(console.error);
+  }, []);
 
   const handleClick = (cat: string) => {
     setActive(cat);

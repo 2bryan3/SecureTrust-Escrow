@@ -341,3 +341,32 @@
   color: var(--accent);
   border-color: rgba(59, 130, 246, 0.3);
 }
+
+.dashboard-waiting {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.escalation-reason {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.action-btn.escalate {
+  background: transparent;
+  border: 1px solid #f87171;
+  color: #f87171;
+}
+
+.action-btn.escalate:hover {
+  background: rgba(248, 113, 113, 0.1);
+}

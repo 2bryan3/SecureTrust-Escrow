@@ -46,3 +46,15 @@
   background-color: var(--card-hover);
   color: #fff;
 }
+
+.user-avatar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-greeting {
+  font-size: 1rem;
+  color: var(--muted);
+  white-space: nowrap;
+}

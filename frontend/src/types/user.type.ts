@@ -1,11 +1,14 @@
 export type User = {
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    _id: string;
-    createdAt?: string;
-    updatedAt?: string;
-    avatar: string;
-    isAdmin?: false;
-  };
+  _id: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  avatar: string;
+  role: "user" | "mediator" | "admin";
+  isBanned?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  totalSales?: number;
+  rating?: number;
+};

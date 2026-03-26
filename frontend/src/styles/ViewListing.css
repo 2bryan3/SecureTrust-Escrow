@@ -1,41 +1,31 @@
-/* frontend/src/styles/ViewListing.css */
-
-/* Root theme variables (same as homepage) */
 :root {
   --bg:        #080c14;
   --surface:   #0e1420;
   --card:      #131926;
-  --card-hover:#16202e;
   --accent:    #3b82f6;
   --accent2:   #06b6d4;
   --gold:      #f59e0b;
   --text:      #f0f4ff;
   --muted:     #8b97b0;
   --border:    rgba(255, 255, 255, 0.07);
-  --font-display: 'Inter', sans-serif;
-  --font-body:    'Inter', sans-serif;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-.viewlisting-bg {
-  width: 100%;
+.vl-page-bg {
+  min-height: 100vh;
   background: var(--bg);
-  padding-bottom: 2rem;
+  color: var(--text);
+  padding: 0 0 4rem 0;
   overflow-y: auto;
 }
 
-.dl-main {
-  max-width: 1200px;
+/* Top bar */
+.vl-topbar {
+  max-width: 1200px;  /* match layout width */
   margin: 0 auto;
-  padding: 2rem;
-  color: var(--text);
+  padding: 1.5rem 2rem 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .vl-back-btn {
@@ -44,208 +34,288 @@
   color: var(--accent);
   font-size: 1rem;
   cursor: pointer;
-  margin-bottom: 1rem;
+  padding: 0;
 }
 
-.vl-page {
-  display: flex;
-  justify-content: center;
+.vl-back-btn:hover { opacity: 0.8; }
+
+/* Two-column layout */
+.vl-page-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  display: grid;
+  grid-template-columns: 55% 1fr;  /* image side gets more room */
+  gap: 3rem;
+  align-items: start;
 }
 
-.vl-container {
+@media (max-width: 768px) {
+  .vl-page-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* LEFT — images */
+.vl-main-image-wrapper {
+  position: relative;
   background: var(--surface);
   border-radius: 12px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 700px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
-.vl-image-wrapper {
-  position: relative;
+.vl-main-image {
   width: 100%;
-  text-align: center;
-  margin-bottom: 1rem;
+  height: 520px;  /* taller main image */
+  object-fit: contain;
 }
 
-.vl-image {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.vl-fav-btn {
+.vl-sold-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: var(--surface);
-  border: none;
-  padding: 0.5rem;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1.2rem;
+  top: 16px;
+  left: 16px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
 }
 
-.vl-title {
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 1rem 0 0.5rem 0;
+.vl-thumbnails {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.vl-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.5;
+  border: 2px solid transparent;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+
+.vl-thumb--active {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.vl-thumb:hover { opacity: 0.85; }
+
+/* RIGHT — details */
+.vl-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .vl-tags {
-  margin-bottom: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .vl-tag {
-  display: inline-block;
-  background: var(--card);
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.vl-title {
+  font-size: 1.75rem;
+  font-weight: 700;
   color: var(--text);
-  padding: 0.25rem 0.5rem;
-  margin-right: 0.5rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
+  margin-bottom: 10px;
+  line-height: 1.2;
 }
 
 .vl-price {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--gold);
-  margin-bottom: 0.5rem;
+  margin-bottom: 6px;
 }
 
 .vl-status-label {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--muted);
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
+.vl-status--available { color: #22c55e; font-weight: 600; }
+.vl-status--sold { color: #ef4444; font-weight: 600; }
+
+.vl-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+/* Sections */
 .vl-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 16px;
 }
 
 .vl-section h2 {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
 }
 
 .vl-section p {
-  font-size: 1rem;
-  line-height: 1.4;
+  font-size: 0.95rem;
+  line-height: 1.6;
   color: var(--text);
 }
 
-.vl-seller-row {
+/* Collapsible item details */
+.vl-collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.vl-collapsible-header h2 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.vl-collapsible-arrow {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.vl-attributes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+}
+
+.vl-attribute-row {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.vl-attribute-key {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.vl-attribute-value {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Seller card */
+.vl-seller-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
 }
 
 .vl-seller-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.vl-seller-name {
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.vl-dashboard-btn,
-.vl-message-btn,
-.vl-report-btn {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  margin-top: 1rem;
-  margin-right: 0.5rem;
-  transition: background 0.2s;
-}
-
-.vl-dashboard-btn:hover,
-.vl-message-btn:hover,
-.vl-report-btn:hover {
-  background: var(--accent2);
-}
-
-.vl-confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.vl-confirm-box {
-  background: var(--surface);
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 300px;
-  text-align: center;
-}
-
-.vl-confirm-buttons {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 1rem;
-}
-
-.confirm-yes,
-.confirm-no {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-
-.confirm-yes {
-  background: var(--accent);
-  color: #fff;
-}
-
-.confirm-no {
-  background: var(--card);
-  color: var(--text);
-}
-
-/* In ViewListing.css */
-
-.vl-seller-initials {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   background: var(--accent);
   color: #fff;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1rem;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
-/* Title row with edit button */
-.vl-title-row {
+.vl-seller-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.vl-seller-email {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Actions */
+.vl-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.vl-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
   width: 100%;
 }
 
-/* Edit button */
+.vl-btn-primary:hover { background: #2563eb; }
+
+.vl-btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  width: 100%;
+}
+
+.vl-btn-secondary:hover {
+  background: var(--surface);
+  border-color: rgba(255,255,255,0.15);
+}
+
+/* Edit button in topbar */
 .vl-edit-btn {
   display: inline-flex;
   align-items: center;
@@ -258,12 +328,33 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s, border-color 0.2s;
-  flex-shrink: 0;
+  transition: background 0.2s;
 }
 
 .vl-edit-btn:hover {
   background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Error */
+.vl-error {
+  color: var(--muted);
+  text-align: center;
+  padding: 4rem;
+}
+
+/* Overlay for popups */
+.vl-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vl-delivery-method {
+  color: var(--text);
+  font-weight: 500;
 }

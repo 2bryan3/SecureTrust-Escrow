@@ -1,4 +1,3 @@
-// frontend/src/pages/ViewListing.tsx
 import React, { useEffect, useState } from "react";
 import "../styles/ViewListing.css";
 import { useNavigate, useParams } from "react-router-dom";
@@ -6,7 +5,6 @@ import type { ListingData } from "../types/listing.types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ListingDashboardPopup } from "../components/ListingDashboardPopup";
 import { EditListingPopup } from "../components/EditListingPopup";
-import { sampleListings } from "../data/sampleListings";
 import { useAuth } from "../context/AuthContext";
 
 export const ViewListing: React.FC = () => {
@@ -19,26 +17,31 @@ export const ViewListing: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [currentImage, setCurrentImage] = useState(0);
+  const [attribsOpen, setAttribsOpen] = useState(false);
+  const formatKey = (key: string) =>
+    key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
-  };
-
-  // Check if logged-in user owns this listing
   const isOwner = user && data && user._id === data.user._id;
 
   useEffect(() => {
     if (!id) return;
-    const listing = sampleListings.find((l) => l._id === id);
-    if (!listing) {
-      setError("Listing not found.");
-      setLoading(false);
-      return;
-    }
-    setData(listing);
-    setLoading(false);
+    const fetchListing = async () => {
+      try {
+        const res = await fetch(`/api/listings/${id}`, { credentials: "include" });
+        if (!res.ok) { setError("Listing not found."); return; }
+        const json = await res.json();
+        setData(json);
+      } catch {
+        setError("Failed to load listing.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchListing();
   }, [id]);
 
   const handleEditSuccess = (updatedData: ListingData) => {
@@ -47,49 +50,98 @@ export const ViewListing: React.FC = () => {
   };
 
   if (loading) return <LoadingSpinner size="small" />;
-  if (error) return <p>Error: {error}</p>;
-  if (!data) return <p>No listing found.</p>;
+  if (error) return <p className="vl-error">Error: {error}</p>;
+  if (!data) return <p className="vl-error">No listing found.</p>;
+
+  const hasAttributes = data.attributes && Object.keys(data.attributes).length > 0;
 
   return (
-    <div className="dl-layout viewlisting-bg">
-      <main className="dl-main">
-        <button className="vl-back-btn" onClick={() => navigate(-1)}>
-          ← Back
-        </button>
+    <div className="vl-page-bg">
 
-        <div className="vl-page">
-          <div className="vl-container">
+      {/* Top bar */}
+      <div className="vl-topbar">
+        <button className="vl-back-btn" onClick={() => navigate(-1)}>← Back</button>
+        {isOwner && (
+          <button className="vl-edit-btn" onClick={() => setShowEdit(true)}>
+            ✏️ Edit Listing
+          </button>
+        )}
+      </div>
 
-            {/* Image */}
-            <div className="vl-image-wrapper">
-              <img src={data.images[0]} alt={data.title} className="vl-image" />
+      <div className="vl-page-layout">
+
+        {/* LEFT — images */}
+        <div className="vl-left">
+          <div className="vl-main-image-wrapper">
+            <img
+              src={data.images[currentImage]}
+              alt={data.title}
+              className="vl-main-image"
+            />
+            {data.isSold && <div className="vl-sold-badge">SOLD</div>}
+          </div>
+          {data.images.length > 1 && (
+            <div className="vl-thumbnails">
+              {data.images.map((img, i) => (
+                <img
+                  key={i}
+                  src={img}
+                  alt={`thumb-${i}`}
+                  className={`vl-thumb ${i === currentImage ? "vl-thumb--active" : ""}`}
+                  onClick={() => setCurrentImage(i)}
+                />
+              ))}
             </div>
+          )}
 
-            {/* Title + owner actions */}
-            <div className="vl-title-row">
-              <h1 className="vl-title">{data.title}</h1>
-              {isOwner && (
-                <button
-                  className="vl-edit-btn"
-                  onClick={() => setShowEdit(true)}
-                >
-                  ✏️ Edit Listing
-                </button>
-              )}
+          {/* Seller — below images */}
+          <div className="vl-section" style={{ marginTop: "1.5rem" }}>
+            <h2>Seller</h2>
+            <div className="vl-seller-card">
+              <div className="vl-seller-avatar">
+                {data.user.firstName?.charAt(0).toUpperCase()}
+                {data.user.lastName?.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div className="vl-seller-name">
+                  {data.user.firstName} {data.user.lastName}
+                </div>
+                <div className="vl-seller-email">{data.user.email}</div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            {/* Tags */}
+        {/* RIGHT — details */}
+          <div className="vl-right">
+
+            {/* Categories */}
             <div className="vl-tags">
               {data.categories.map((tag, i) => (
                 <span key={i} className="vl-tag">{tag}</span>
               ))}
             </div>
 
-            <div className="vl-price">${data.price}</div>
+            {/* Title */}
+            <h1 className="vl-title">{data.title}</h1>
+
+            {/* Price + status */}
+            <div className="vl-price">${data.price.toLocaleString()}</div>
+            <p className="vl-status-label">
+              Status:{" "}
+              <span className={data.isSold ? "vl-status--sold" : "vl-status--available"}>
+                {data.isSold ? "Sold" : "Available"}
+              </span>
+            </p>
 
             <p className="vl-status-label">
-              Listing Status: {data.isSold ? "Sold" : "Available"}
+              Delivery:{" "}
+              <span className="vl-delivery-method">
+                {data.deliveryMethod === "shipping" ? "Shipping" : "Local Pickup"}
+              </span>
             </p>
+
+            <div className="vl-divider" />
 
             {/* Description */}
             <div className="vl-section">
@@ -97,52 +149,48 @@ export const ViewListing: React.FC = () => {
               <p>{data.description}</p>
             </div>
 
-            {/* Seller */}
-            <div className="vl-section">
-              <h2>Seller Information</h2>
-              <div className="vl-seller-row">
-                <div className="vl-seller-initials">
-                  {getInitials(data.user.username)}
+            {/* Item details — always visible */}
+            {hasAttributes && (
+              <div className="vl-section">
+                <h2>Item Details</h2>
+                <div className="vl-attributes-grid">
+                  {Object.entries(data.attributes!).map(([key, value]) => (
+                    <div key={key} className="vl-attribute-row">
+                      <span className="vl-attribute-key">{formatKey(key)}</span>
+                      <span className="vl-attribute-value">{value}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="vl-seller-name">{data.user.username}</div>
               </div>
+            )}
+
+            {/* Actions */}
+            <div className="vl-actions">
+              {!isOwner && !data.isSold && (
+                <button className="vl-btn-primary" onClick={() => alert("Buy now functionality coming soon!")}>
+                  Buy Now
+                </button>
+              )}
+              <button className="vl-btn-secondary" onClick={() => setShowDashboard(true)}>
+                Manage Sale
+              </button>
             </div>
 
-            {/* Manage Sale — only show to owner */}
-            {/* {isOwner && (
-              <button
-                className="vl-dashboard-btn"
-                onClick={() => setShowDashboard(true)}
-              >
-                Manage Sale
-              </button>
-            )} */}
-
-             {/* For demo purposes, show dashboard button to everyone */}
-              <button
-                className="vl-dashboard-btn"
-                onClick={() => setShowDashboard(true)}
-              >
-                Manage Sale
-              </button>
-          
-
-            {showDashboard && (
-              <ListingDashboardPopup
-                listingTitle={data.title}
-                milestones={[
-                  { id: "1", title: "Milestone 1", status: "Pending" },
-                  { id: "2", title: "Milestone 2", status: "Completed" },
-                ]}
-                escrowAmount={500}
-                onClose={() => setShowDashboard(false)}
-              />
-            )}
           </div>
-        </div>
-      </main>
 
-      {/* Edit popup — renders on top of everything */}
+      {/* Popups */}
+      {showDashboard && (
+        <ListingDashboardPopup
+          listingTitle={data.title}
+          deliveryMethod={data.deliveryMethod}
+          escrowAmount={data.price}
+          isOwner={!!isOwner}
+          listingID={data._id}
+          sellerID={data.user._id}
+          onClose={() => setShowDashboard(false)}
+        />
+      )}
+
       {showEdit && (
         <EditListingPopup
           listingData={data}
@@ -150,6 +198,7 @@ export const ViewListing: React.FC = () => {
           onSuccess={handleEditSuccess}
         />
       )}
+    </div>
     </div>
   );
 };

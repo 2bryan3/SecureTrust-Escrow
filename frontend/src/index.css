@@ -39,8 +39,8 @@ a {
 #root {
   display: flex;
   flex-direction: column;
-  height: 100vh;        /* change min-height to height */
-  overflow: hidden;
+  min-height: 100vh;
+  /* overflow: hidden; */
 }
 
 /* Scrollbar */
