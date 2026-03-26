@@ -80,24 +80,10 @@
   align-items: center;
   font-size: 0.72rem;
   color: var(--muted);
-  flex: 1;
-  position: relative;
+  /* no flex: 1 here — connector handles spacing */
 }
 
-.progress-step:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: 13px;
-  left: 50%;
-  width: 100%;
-  height: 2px;
-  background: var(--border);
-  z-index: 0;
-}
-.progress-step.completed:not(:last-child)::after {
-  background: var(--accent);
-}
-
+/* Remove old pseudo-element connector — now using .progress-connector div */
 .progress-step .circle {
   width: 28px;
   height: 28px;
@@ -110,17 +96,31 @@
   margin-bottom: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  position: relative;
-  z-index: 1;
 }
 .progress-step.completed .circle {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
 }
+.progress-step.active .circle {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .progress-step.pending .circle {
   border-color: rgba(59, 130, 246, 0.4);
   color: var(--accent);
+}
+
+/* ── Progress connector line between steps ── */
+.progress-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin: 0 8px;
+  margin-bottom: 22px; /* aligns vertically with circle centers */
+}
+.progress-connector.completed {
+  background: var(--accent);
 }
 
 /* ── Sections ── */
@@ -166,12 +166,14 @@
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
 }
-.milestone-card.pending .status {
+.milestone-card.pending .status,
+.status.pending {
   background: rgba(59, 130, 246, 0.12);
   color: var(--accent);
   border: 1px solid rgba(59, 130, 246, 0.25);
 }
-.milestone-card.completed .status {
+.milestone-card.completed .status,
+.status.completed {
   background: rgba(16, 185, 129, 0.12);
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.25);
@@ -191,6 +193,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1rem 1.25rem;
+  margin: 0 1.5rem 1rem;
 }
 
 .funds-left {
@@ -341,6 +344,14 @@
   color: var(--accent);
   border-color: rgba(59, 130, 246, 0.3);
 }
+.action-btn.escalate {
+  background: transparent;
+  border: 1px solid #f87171;
+  color: #f87171;
+}
+.action-btn.escalate:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
 
 .dashboard-waiting {
   color: var(--muted);
@@ -359,14 +370,4 @@
   color: var(--text);
   font-size: 0.9rem;
   resize: vertical;
-}
-
-.action-btn.escalate {
-  background: transparent;
-  border: 1px solid #f87171;
-  color: #f87171;
-}
-
-.action-btn.escalate:hover {
-  background: rgba(248, 113, 113, 0.1);
 }

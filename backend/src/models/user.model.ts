@@ -10,7 +10,8 @@ const UserSchema = new mongoose.Schema(
     email:      { type: String, unique: true, required: true },
     role: { type: String, enum: ["user", "mediator", "admin"], default: "user" },
     isBanned:   { type: Boolean, default: false },
-    avatar:     { type: String, default: "..." }, // keep your base64 default
+    avatar:     { type: String, default: "..." },
+    funds:      { type: Number, default: 0 }, 
   },
   { timestamps: true, versionKey: false }
 );

@@ -1,92 +1,407 @@
-// frontend/src/components/ListingDashboardPopup.tsx
 import React, { useState, useRef } from "react";
 import "../styles/ListingDashboard.css";
 import axios from "axios";
 import { ToastPortal } from "./ToastPortal";
+import type {
+  TransactionData,
+  Milestone1Data,
+  Milestone2Data,
+} from "../types/transaction.types";
 
-interface Milestone {
-  id: string;
-  title: string;
-  status: "Pending" | "Completed" | "Evidence Submitted";
-}
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface ListingDashboardPopupProps {
-  listingTitle: string;
-  deliveryMethod: "shipping" | "local_pickup";
-  escrowAmount: number;
-  isOwner: boolean;
+  transaction: TransactionData;
+  currentUserId: string;
   listingID: string;
   sellerID: string;
   onClose: () => void;
+  onTransactionUpdate: (updated: TransactionData) => void;
+  /** Pass true when running without a real backend — actions update state locally. */
+  mockMode?: boolean;
 }
 
-const getMilestones = (deliveryMethod: "shipping" | "local_pickup"): Milestone[] => {
-  if (deliveryMethod === "shipping") {
-    return [
-      { id: "1", title: "Seller uploads tracking number or photo of packaged item", status: "Pending" },
-      { id: "2", title: "Buyer confirms item received and matches listing", status: "Pending" },
-      { id: "3", title: "Funds released to seller", status: "Pending" },
-    ];
-  }
-  return [
-    { id: "1", title: "Seller uploads photo of item before meetup", status: "Pending" },
-    { id: "2", title: "Buyer confirms item at meetup", status: "Pending" },
-    { id: "3", title: "Funds released to seller", status: "Pending" },
-  ];
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const API = "/api/transactions";
+
+async function patchTx(
+  txId: string,
+  path: string,
+  body: Record<string, unknown>
+): Promise<TransactionData> {
+  const res = await fetch(`${API}/${txId}/${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!text) throw new Error("Server returned an empty response.");
+  const data = JSON.parse(text);
+  if (!res.ok) throw new Error(data.error ?? "Request failed");
+  return data.transaction as TransactionData;
+}
+
+const formatStatus = (status: string) => {
+  if (status === "milestone1") return "Milestone 1";
+  if (status === "milestone2") return "Milestone 2";
+  return status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 };
 
+/** Mirrors backend route logic locally for mockMode. */
+function applyMockAction(
+  tx: TransactionData,
+  path: string,
+  body: Record<string, unknown>
+): TransactionData {
+  const next: TransactionData = JSON.parse(JSON.stringify(tx));
+  const now = new Date().toISOString();
+
+  if (path === "milestone1/seller") {
+    next.milestone1.packageImageUrl   = body.packageImageUrl as string;
+    next.milestone1.trackingNumber    = body.trackingNumber as string;
+    next.milestone1.trackingCarrier   = (body.trackingCarrier as string) ?? null;
+    next.milestone1.sellerSubmittedAt = now;
+    const buyerDone = next.milestone1.buyerFundsDeposited;
+    next.milestone1.status = buyerDone ? "completed" : "seller_submitted";
+    if (buyerDone) { next.status = "milestone2"; next.milestone2.status = "awaiting_confirmation"; }
+  }
+
+  if (path === "milestone1/buyer") {
+    next.milestone1.buyerFundsDeposited = true;
+    next.milestone1.buyerDepositedAt    = now;
+    next.milestone1.depositTxRef        = body.depositTxRef as string;
+    next.escrowAmount                   = next.amount;
+    const sellerDone = !!next.milestone1.sellerSubmittedAt;
+    next.milestone1.status = sellerDone ? "completed" : "buyer_funded";
+    if (sellerDone) { next.status = "milestone2"; next.milestone2.status = "awaiting_confirmation"; }
+  }
+
+  if (path === "milestone2/confirm") {
+    next.milestone2.buyerConfirmed   = true;
+    next.milestone2.buyerConfirmedAt = now;
+    next.milestone2.buyerConfirmNote = (body.buyerConfirmNote as string) ?? null;
+    next.milestone2.fundsReleasedAt  = now;
+    next.milestone2.status           = "funds_released";
+    next.escrowAmount                = 0;
+    next.status                      = "completed";
+  }
+
+  return next;
+}
+
+// ─── Milestone 1 Panel ────────────────────────────────────────────────────────
+
+interface M1PanelProps {
+  txId: string;
+  currentUserId: string;
+  isBuyer: boolean;
+  isSeller: boolean;
+  m1: Milestone1Data;
+  amount: number;
+  transaction: TransactionData;
+  onUpdate: (tx: TransactionData) => void;
+  onToast: (msg: string, type: "success" | "error") => void;
+  mockMode?: boolean;
+}
+
+const Milestone1Panel: React.FC<M1PanelProps> = ({
+  txId, currentUserId, isBuyer, isSeller, m1, amount, transaction, onUpdate, onToast, mockMode,
+}) => {
+  const [trackingNum, setTrackingNum] = useState(m1.trackingNumber ?? "");
+  const [carrier, setCarrier]         = useState(m1.trackingCarrier ?? "");
+  const [imageUrl, setImageUrl]       = useState(m1.packageImageUrl ?? "");
+  const [uploading, setUploading]     = useState(false);
+  const [depositing, setDepositing]   = useState(false);
+  const fileInputRef                  = useRef<HTMLInputElement>(null);
+
+  const sellerDone = !!m1.sellerSubmittedAt;
+  const buyerDone  = m1.buyerFundsDeposited;
+
+  const handleSellerSubmit = async () => {
+    if (!imageUrl || !trackingNum) {
+      onToast("Package image and tracking number are required.", "error");
+      return;
+    }
+    setUploading(true);
+    try {
+      const body = { sellerId: currentUserId, packageImageUrl: imageUrl, trackingNumber: trackingNum, trackingCarrier: carrier || null };
+      const updated = mockMode
+        ? applyMockAction(transaction, "milestone1/seller", body)
+        : await patchTx(txId, "milestone1/seller", body);
+      onUpdate(updated);
+      onToast("Shipping info submitted successfully!", "success");
+    } catch (e: any) {
+      onToast(e.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeposit = async () => {
+    setDepositing(true);
+    try {
+      const body = { buyerId: currentUserId, depositTxRef: `sim_${Date.now()}` };
+      const updated = mockMode
+        ? applyMockAction(transaction, "milestone1/buyer", body)
+        : await patchTx(txId, "milestone1/buyer", body);
+      onUpdate(updated);
+      onToast(`$${amount.toLocaleString()} deposited into escrow.`, "success");
+    } catch (e: any) {
+      onToast(e.message, "error");
+    } finally {
+      setDepositing(false);
+    }
+  };
+
+  return (
+    <div className="dashboard-section">
+      <h3>Milestone 1 — Shipment &amp; Fund Deposit</h3>
+      <p className="order-subtitle" style={{ marginBottom: "1rem" }}>
+        Both parties must act before this milestone closes.
+      </p>
+
+      {/* Checklist */}
+      <div className="milestone-card" style={{ marginBottom: "8px" }}>
+        <span>{sellerDone ? "✅" : "📦"} Seller — Upload tracking number &amp; package photo</span>
+        <span className={`status ${sellerDone ? "completed" : "pending"}`}>
+          {sellerDone ? `${m1.trackingCarrier ?? "Carrier"}: ${m1.trackingNumber}` : "Pending"}
+        </span>
+      </div>
+      <div className="milestone-card" style={{ marginBottom: "1rem" }}>
+        <span>{buyerDone ? "✅" : "💳"} Buyer — Deposit ${amount.toLocaleString()} into escrow</span>
+        <span className={`status ${buyerDone ? "completed" : "pending"}`}>
+          {buyerDone ? "Funded" : "Pending"}
+        </span>
+      </div>
+
+      {/* Seller action */}
+      {isSeller && !sellerDone && (
+        <div className="actions-section">
+          <h3>⚠️ Your action required</h3>
+          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Package photo</label>
+          <div className="evidence-dropzone" onClick={() => fileInputRef.current?.click()}>
+            {imageUrl
+              ? <img src={imageUrl} alt="Package preview" style={{ maxHeight: "120px", borderRadius: "8px" }} />
+              : <><span className="evidence-icon">📷</span><span className="evidence-hint">Click to attach package photo</span></>
+            }
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setImageUrl(URL.createObjectURL(file));
+            }}
+          />
+
+          <label style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "0.5rem", display: "block" }}>
+            Or paste image URL
+          </label>
+          <input
+            className="escalation-reason"
+            style={{ padding: "8px 12px", marginBottom: "8px" }}
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://..."
+          />
+
+          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Tracking number</label>
+          <div className="cl-field" style={{ marginBottom: "8px" }}>
+            <input
+              type="text"
+              placeholder="1Z999AA10123456784"
+              value={trackingNum}
+              onChange={(e) => setTrackingNum(e.target.value)}
+              style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box" }}
+            />
+          </div>
+
+          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Carrier (optional)</label>
+          <select
+            style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box", marginBottom: "12px" }}
+            value={carrier}
+            onChange={(e) => setCarrier(e.target.value)}
+          >
+            <option value="">Select carrier…</option>
+            {["UPS", "FedEx", "USPS", "DHL", "Other"].map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          <button className="action-btn upload" onClick={handleSellerSubmit} disabled={uploading}>
+            {uploading ? "Submitting…" : "Submit Shipping Info"}
+          </button>
+        </div>
+      )}
+
+      {/* Buyer action */}
+      {isBuyer && !buyerDone && (
+        <div className="actions-section">
+          <h3>⚠️ Your action required</h3>
+          <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "12px" }}>
+            Deposit <strong>${amount.toLocaleString()}</strong> into escrow. Funds are held
+            securely until you confirm delivery in Milestone 2.
+          </p>
+          <button className="action-btn add" onClick={handleDeposit} disabled={depositing}>
+            {depositing ? "Processing…" : `Deposit $${amount.toLocaleString()} into Escrow`}
+          </button>
+        </div>
+      )}
+
+      {isSeller && sellerDone && !buyerDone && (
+        <p className="dashboard-waiting">⏳ Waiting for the buyer to deposit funds…</p>
+      )}
+      {isBuyer && buyerDone && !sellerDone && (
+        <p className="dashboard-waiting">⏳ Waiting for the seller to submit tracking info…</p>
+      )}
+    </div>
+  );
+};
+
+// ─── Milestone 2 Panel ────────────────────────────────────────────────────────
+
+interface M2PanelProps {
+  txId: string;
+  currentUserId: string;
+  isBuyer: boolean;
+  isSeller: boolean;
+  m1: Milestone1Data;
+  m2: Milestone2Data;
+  amount: number;
+  transaction: TransactionData;
+  onUpdate: (tx: TransactionData) => void;
+  onToast: (msg: string, type: "success" | "error") => void;
+  mockMode?: boolean;
+}
+
+const Milestone2Panel: React.FC<M2PanelProps> = ({
+  txId, currentUserId, isBuyer, isSeller, m1, m2, amount, transaction, onUpdate, onToast, mockMode,
+}) => {
+  const [note, setNote]             = useState("");
+  const [confirming, setConfirming] = useState(false);
+
+  const isLocked   = m2.status === "locked";
+  const isReleased = m2.status === "funds_released";
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    try {
+      const body = { buyerId: currentUserId, buyerConfirmNote: note || null };
+      const updated = mockMode
+        ? applyMockAction(transaction, "milestone2/confirm", body)
+        : await patchTx(txId, "milestone2/confirm", body);
+      onUpdate(updated);
+      onToast("Receipt confirmed! Funds released to the seller.", "success");
+    } catch (e: any) {
+      onToast(e.message, "error");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  if (isLocked) {
+    return (
+      <div className="dashboard-section">
+        <h3>Milestone 2 — Confirm Delivery &amp; Release Funds</h3>
+        <p className="dashboard-waiting">🔒 Unlocks once Milestone 1 is complete.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard-section">
+      <h3>Milestone 2 — Confirm Delivery &amp; Release Funds</h3>
+
+      {/* Shipping summary from M1 */}
+      <div className="milestone-card" style={{ marginBottom: "1rem" }}>
+        <span>📦 Shipped via <strong>{m1.trackingCarrier ?? "carrier"}</strong> · {m1.trackingNumber}</span>
+        {m1.packageImageUrl && (
+          <a href={m1.packageImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem" }}>
+            View photo ↗
+          </a>
+        )}
+      </div>
+
+      {isReleased ? (
+        <div className="milestone-card completed">
+          <span>🎉 Funds of ${amount.toLocaleString()} released to seller</span>
+          <span className="status completed">
+            {new Date(m2.fundsReleasedAt!).toLocaleDateString()}
+          </span>
+        </div>
+      ) : (
+        <>
+          {isBuyer && (
+            <div className="actions-section">
+              <h3>⚠️ Did you receive what was agreed upon?</h3>
+              <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "12px" }}>
+                By confirming, you release <strong>${amount.toLocaleString()}</strong> to the seller.
+                This cannot be undone.
+              </p>
+              <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Optional note for the seller</label>
+              <textarea
+                className="escalation-reason"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Everything arrived in great condition!"
+                rows={3}
+              />
+              <button className="action-btn release" onClick={handleConfirm} disabled={confirming}>
+                {confirming ? "Processing…" : `✅ Confirm Receipt & Release $${amount.toLocaleString()}`}
+              </button>
+            </div>
+          )}
+          {isSeller && (
+            <p className="dashboard-waiting">⏳ Waiting for buyer to confirm they received the order…</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─── Main popup ───────────────────────────────────────────────────────────────
+
 export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
-  listingTitle,
-  deliveryMethod,
-  escrowAmount,
-  isOwner,
+  transaction,
+  currentUserId,
   listingID,
   sellerID,
   onClose,
+  onTransactionUpdate,
+  mockMode = false,
 }) => {
-  const [milestones, setMilestones] = useState<Milestone[]>(getMilestones(deliveryMethod));
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [activeMilestone, setActiveMilestone] = useState<Milestone | null>(null);
-  const [trackingNumber, setTrackingNumber] = useState("");
-  const [escalationReason, setEscalationReason] = useState("");
-  const [showEscalate, setShowEscalate] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { _id, milestone1, milestone2, amount, escrowAmount, status } = transaction;
 
-  const activeMilestoneIndex = activeMilestone ? milestones.findIndex(m => m.id === activeMilestone.id) : -1;
-  const milestone1Complete = milestones[0].status === "Completed" || milestones[0].status === "Evidence Submitted";
-  const isFinalMilestone = activeMilestoneIndex === 2;
+  const listingTitle = typeof transaction.listingId === "object"
+    ? transaction.listingId.title
+    : "Transaction";
+
+  const buyerId  = typeof transaction.buyerId  === "object" ? transaction.buyerId._id  : transaction.buyerId;
+  const sellerId = typeof transaction.sellerId === "object" ? transaction.sellerId._id : transaction.sellerId;
+
+  const isBuyer  = buyerId  === currentUserId;
+  const isSeller = sellerId === currentUserId;
+
+  const [escalationReason, setEscalationReason] = useState("");
+  const [showEscalate, setShowEscalate]         = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    setSelectedFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
-    e.target.value = "";
-  };
+  const showToast = (message: string, type: "success" | "error") => setToast({ message, type });
 
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  const m1Complete = milestone1.status === "completed";
+  const isComplete = status === "completed";
 
-  const handleUploadEvidence = () => {
-    if (!activeMilestone) return;
-    setMilestones(prev => prev.map(m =>
-      m.id === activeMilestone.id ? { ...m, status: "Evidence Submitted" } : m
-    ));
-    setActiveMilestone(prev => prev ? { ...prev, status: "Evidence Submitted" } : null);
-    setSelectedFiles([]);
-    setToast({ message: `Evidence submitted for: ${activeMilestone.title}`, type: "success" });
-  };
+  // Which milestone panel is visible — defaults to active one
+  const defaultView = status === "milestone2" || isComplete ? 2 : 1;
+  const [viewingMilestone, setViewingMilestone] = React.useState<1 | 2>(defaultView as 1 | 2);
 
-  const handleConfirmReceipt = () => {
-    if (!activeMilestone) return;
-    setMilestones(prev => prev.map(m =>
-      m.id === activeMilestone.id ? { ...m, status: "Completed" }
-      : m.id === "3" ? { ...m, status: "Completed" }
-      : m
-    ));
-    setActiveMilestone(prev => prev ? { ...prev, status: "Completed" } : null);
-    setToast({ message: "Receipt confirmed! Funds will be released to the seller.", type: "success" });
-  };
+  React.useEffect(() => {
+    if (status === "milestone2" || isComplete) setViewingMilestone(2);
+  }, [status, isComplete]);
 
   const handleEscalate = async () => {
     if (!escalationReason.trim()) return;
@@ -96,169 +411,146 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
         sellerID,
         reason: escalationReason,
       }, { withCredentials: true });
-      setToast({ message: "Dispute submitted. A mediator will review your case.", type: "success" });
+      showToast("Dispute submitted. A mediator will review your case.", "success");
       setShowEscalate(false);
       setEscalationReason("");
     } catch (err: any) {
-      setToast({ message: err.response?.data?.message ?? "Failed to submit dispute.", type: "error" });
+      showToast(err.response?.data?.message ?? "Failed to submit dispute.", "error");
     }
-  };
-
-  const renderActions = () => {
-    if (!activeMilestone || isFinalMilestone) return null;
-
-    if (activeMilestoneIndex === 0) {
-      if (isOwner) {
-        return (
-          <>
-            {deliveryMethod === "shipping" && (
-              <div className="cl-field" style={{ marginBottom: "12px" }}>
-                <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Tracking Number</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 1Z999AA10123456784"
-                  value={trackingNumber}
-                  onChange={e => setTrackingNumber(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box" as const }}
-                />
-              </div>
-            )}
-            <div className="evidence-upload">
-              <div className="evidence-dropzone" onClick={() => fileInputRef.current?.click()}>
-                <span className="evidence-icon">📎</span>
-                <span className="evidence-hint">Click to attach evidence files</span>
-              </div>
-              <input type="file" multiple ref={fileInputRef} onChange={handleFileSelect} style={{ display: "none" }} />
-              {selectedFiles.length > 0 && (
-                <div className="evidence-file-list">
-                  {selectedFiles.map((file, i) => (
-                    <div key={i} className="evidence-file-item">
-                      <span className="evidence-file-name">📄 {file.name}</span>
-                      <button className="evidence-file-remove" onClick={() => handleRemoveFile(i)}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button className="action-btn upload" onClick={handleUploadEvidence}>
-              Upload Evidence
-            </button>
-          </>
-        );
-      } else {
-        return <p className="dashboard-waiting">Waiting for seller to upload evidence...</p>;
-      }
-    }
-
-    if (activeMilestoneIndex === 1) {
-      if (!isOwner) {
-        return (
-          <button className="action-btn release" onClick={handleConfirmReceipt}>
-            {deliveryMethod === "shipping" ? "Confirm Item Received" : "Confirm Item at Meetup"}
-          </button>
-        );
-      } else {
-        return <p className="dashboard-waiting">Waiting for buyer to confirm...</p>;
-      }
-    }
-
-    return null;
   };
 
   return (
     <>
       <ToastPortal toast={toast} onClose={() => setToast(null)} />
-        <div className="listing-dashboard-overlay" onClick={onClose}>
-          <div className="listing-dashboard-popup" onClick={(e) => e.stopPropagation()}>
+      <div className="listing-dashboard-overlay" onClick={onClose}>
+        <div className="listing-dashboard-popup" onClick={(e) => e.stopPropagation()}>
 
-            <div className="dashboard-header">
-              <div>
-                <h2>{listingTitle}</h2>
-                <p className="order-subtitle">Order Management</p>
-              </div>
-              <button className="close-btn" onClick={onClose}>×</button>
+          {/* Header */}
+          <div className="dashboard-header">
+            <div>
+              <h2>{listingTitle}</h2>
+              <p className="order-subtitle">Escrow Transaction Management</p>
             </div>
-
-            <div className="order-progress">
-              {milestones.map((m, i) => (
-                <div key={m.id} className={`progress-step ${m.status.toLowerCase().replace(" ", "-")}`}>
-                  <div className="circle">{i + 1}</div>
-                  <span>{m.title}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="dashboard-section">
-              <h3>Milestones</h3>
-              {milestones.map((m) => (
-                <div
-                  key={m.id}
-                  className={`milestone-card ${m.status.toLowerCase().replace(" ", "-")} ${activeMilestone?.id === m.id ? "active" : ""}`}
-                  onClick={() => setActiveMilestone(m)}
-                >
-                  <span>{m.title}</span>
-                  <span className="status">{m.status}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="dashboard-section">
-              <h3>Funds</h3>
-              <div className="funds-row">
-                <div className="funds-left">
-                  <div className="funds-amount">${escrowAmount}</div>
-                  <div className="funds-status">Held in Escrow</div>
-                </div>
-                <div className="funds-right">
-                  {activeMilestone ? (
-                    <>
-                      <div className="funds-meta-label">Active Milestone</div>
-                      <div className="funds-meta-value">{activeMilestone.title}</div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="funds-meta-label">Select a milestone</div>
-                      <div className="funds-meta-value muted">to take action</div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {activeMilestone && !isFinalMilestone && (
-              <div className="dashboard-section actions-section">
-                <h3>Actions — {activeMilestone.title}</h3>
-                {renderActions()}
-              </div>
-            )}
-            {/* change to milestone1Complete from "true" once we have real data to determine if milestone 1 is complete */}
-            {true && (
-              <div className="dashboard-section">
-                <h3>Dispute</h3>
-                {!showEscalate ? (
-                  <button className="action-btn escalate" onClick={() => setShowEscalate(true)}>
-                    Escalate to Mediator
-                  </button>
-                ) : (
-                  <>
-                    <textarea
-                      className="escalation-reason"
-                      placeholder="Describe the issue..."
-                      value={escalationReason}
-                      onChange={e => setEscalationReason(e.target.value)}
-                      rows={3}
-                    />
-                    <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                      <button className="action-btn escalate" onClick={handleEscalate}>Submit Dispute</button>
-                      <button className="action-btn" onClick={() => setShowEscalate(false)}>Cancel</button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
+            <button className="close-btn" onClick={onClose} aria-label="Close">×</button>
           </div>
+
+          {/* Escrow summary strip */}
+          <div className="funds-row" style={{ marginBottom: "1rem" }}>
+            <div className="funds-left">
+              <div className="funds-amount">${amount.toLocaleString()}</div>
+              <div className="funds-status">Total Agreed</div>
+            </div>
+            <div className="funds-right">
+              <div className="funds-amount">${escrowAmount.toLocaleString()}</div>
+              <div className="funds-status">Held in Escrow</div>
+            </div>
+            <div className="funds-right">
+              <div className="funds-meta-label">Status</div>
+              <div className="funds-meta-value">{formatStatus(status)}</div>
+            </div>
+          </div>
+
+          {/* Progress stepper */}
+          <div className="order-progress">
+            <div
+              className={`progress-step ${m1Complete || isComplete ? "completed" : status === "milestone1" ? "active" : "pending"} ${viewingMilestone === 1 ? "viewing" : ""}`}
+              onClick={m1Complete || isComplete ? () => setViewingMilestone(1) : undefined}
+              style={{ cursor: m1Complete || isComplete ? "pointer" : "default" }}
+            >
+              <div className="circle">{m1Complete || isComplete ? "✓" : "1"}</div>
+              <span>Shipment &amp; Deposit</span>
+            </div>
+            <div className={`progress-connector ${m1Complete ? "completed" : ""}`} />
+            <div
+              className={`progress-step ${isComplete ? "completed" : status === "milestone2" ? "active" : "pending"} ${viewingMilestone === 2 ? "viewing" : ""}`}
+              onClick={status !== "milestone1" ? () => setViewingMilestone(2) : undefined}
+              style={{ cursor: status !== "milestone1" ? "pointer" : "default" }}
+            >
+              <div className="circle">{isComplete ? "✓" : "2"}</div>
+              <span>Confirm &amp; Release</span>
+            </div>
+          </div>
+
+          {/* Milestone panels */}
+          {isComplete && viewingMilestone === 2 ? (
+            <div className="dashboard-section">
+              <h3>🎉 Transaction Complete</h3>
+              <p style={{ color: "var(--muted)" }}>Funds have been released. Thank you for using SecureTrust!</p>
+            </div>
+          ) : viewingMilestone === 1 ? (
+            <Milestone1Panel
+              txId={_id}
+              currentUserId={currentUserId}
+              isBuyer={isBuyer}
+              isSeller={isSeller}
+              m1={milestone1}
+              amount={amount}
+              transaction={transaction}
+              onUpdate={onTransactionUpdate}
+              onToast={showToast}
+              mockMode={mockMode}
+            />
+          ) : (
+            <>
+              {/* Collapsed M1 summary */}
+              {m1Complete && (
+                <div
+                  className="milestone-card completed"
+                  style={{ cursor: "pointer", marginBottom: "1rem" }}
+                  onClick={() => setViewingMilestone(1)}
+                >
+                  <span>✓ Milestone 1 Complete · {milestone1.trackingCarrier} · {milestone1.trackingNumber}</span>
+                  <span className="status completed">← View details</span>
+                </div>
+              )}
+              <Milestone2Panel
+                txId={_id}
+                currentUserId={currentUserId}
+                isBuyer={isBuyer}
+                isSeller={isSeller}
+                m1={milestone1}
+                m2={milestone2}
+                amount={amount}
+                transaction={transaction}
+                onUpdate={onTransactionUpdate}
+                onToast={showToast}
+                mockMode={mockMode}
+              />
+            </>
+          )}
+
+          {/* Role footer */}
+          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
+            {isBuyer  && <span className="status pending" style={{ fontSize: "0.75rem" }}>You are the Buyer</span>}
+            {isSeller && <span className="status completed" style={{ fontSize: "0.75rem" }}>You are the Seller</span>}
+          </div>
+
+          {/* Dispute section */}
+          <div className="dashboard-section">
+            <h3>Dispute</h3>
+            {!showEscalate ? (
+              <button className="action-btn escalate" onClick={() => setShowEscalate(true)}>
+                Escalate to Mediator
+              </button>
+            ) : (
+              <>
+                <textarea
+                  className="escalation-reason"
+                  placeholder="Describe the issue..."
+                  value={escalationReason}
+                  onChange={(e) => setEscalationReason(e.target.value)}
+                  rows={3}
+                />
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <button className="action-btn escalate" onClick={handleEscalate}>Submit Dispute</button>
+                  <button className="action-btn" onClick={() => setShowEscalate(false)}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+
         </div>
-      </>
+      </div>
+    </>
   );
 };
