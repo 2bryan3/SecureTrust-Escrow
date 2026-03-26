@@ -14,7 +14,7 @@ const categories = [
 ];
 
 async function seed() {
-  await mongoose.connect("mongodb+srv://securetrust48_db_user:WCUQy4Fmddvtt818@cluster0.2cptqzs.mongodb.net/securetrust?retryWrites=true&w=majority");
+  await mongoose.connect(process.env.MONGO_URI!)
   console.log("Connected to MongoDB");
 
   for (const name of categories) {
