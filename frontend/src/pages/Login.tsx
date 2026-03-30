@@ -14,7 +14,6 @@ export default function Login() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const nav = useNavigate();
   const loc = useLocation() as any;
-  const { refreshUser } = useAuth();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +21,6 @@ export default function Login() {
     try {
       await login(email, password);
       setToast({ message: "Welcome back!", type: "success" });
-      await refreshUser();
       const to = loc.state?.from?.pathname ?? "/";
       nav(to, { replace: true });
     } catch (e: any) {

@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from "react";
-import axios from "axios";
 import type { User } from "../types/user.type";
 import { api } from "../api/api";
 
@@ -18,29 +17,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
-
   const refreshUser = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
-        withCredentials: true,
-      });
-      console.log("refreshUser response:", response.data);
-      setUser(response.data.user);
-    } catch (error) {
-      setUser(null);
-    }
-  };
-
-  async function signup(email: string, password: string, firstName: string, lastName: string) {
-  const data = await api<User>("/auth/signup", { method: "POST", body: { email, password, firstName, lastName } });
-  setUser(data);
-  console.log("API_BASE:", import.meta.env.VITE_API_URL);
-}
+  try {
+    const data = await api<{ user: User }>("/auth/me");
+    setUser(data.user);
+  } catch {
+    setUser(null);
+  }
+};
 
 async function login(email: string, password: string) {
   const data = await api<User>("/auth/login", { method: "POST", body: { email, password } });
-  setUser(data);
+  setUser(data); // backend returns user directly, no wrapper
+}
+
+async function signup(email: string, password: string, firstName: string, lastName: string) {
+  const data = await api<User>("/auth/signup", { method: "POST", body: { email, password, firstName, lastName } });
+  setUser(data); // same shape
 }
 
   async function logout() {

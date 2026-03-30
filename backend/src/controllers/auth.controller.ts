@@ -81,7 +81,8 @@ export const signup = async (req: Request, res: Response) => {
 
         res.status(201).json({
             _id: newUser._id,
-            fullName: newUser.firstName + " " + newUser.lastName,
+            firstName: newUser.firstName,
+            lastName: newUser.lastName,
             username: newUser.username,
             email: newUser.email,
             avatar: newUser.avatar,
@@ -117,7 +118,8 @@ export const login = async (req: Request, res: Response) => {
 
         res.status(201).json({
             _id: user._id,
-            fullName: user.firstName + " " + user.lastName,
+            firstName: user.firstName,
+            lastName: user.lastName,
             username: user.username,
             email: user.email,
             avatar: user.avatar,

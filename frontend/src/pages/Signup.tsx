@@ -17,7 +17,7 @@ export default function Signup() {
   const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const {signup, refreshUser} = useAuth();
+  const {signup} = useAuth();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +36,6 @@ export default function Signup() {
     try {
       await signup(email, password, firstName, lastName);
       setToast({ message: "Account created!", type: "success" });
-      await refreshUser();
       nav("/", { replace: true });
     } catch (e: any) {
       setToast({ message: e.message ?? "Signup failed", type: "error" });
