@@ -23,7 +23,7 @@ reportRouter.post("/", protectRoute, async (req, res) => {
 
 
 // Get all listing reports
-reportRouter.get("/", protectRoute, async (req: Request, res: Response) => {
+reportRouter.get("/", protectRoute, async (_req: Request, res: Response) => {
     try {
       const reports = await ListingReport.aggregate([
         {

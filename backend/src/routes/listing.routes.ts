@@ -12,18 +12,21 @@ import {
   getFavorite,
   getMyListings,
   getMyFavorites,
+  getPopularListings,
 } from "../controllers/listing.controller";
 import protectRoute from "../utils/protectRoute";
+import optionalAuth from "../utils/optionalAuth";
 
 const listingRouter = express.Router();
 
 // Public — specific routes FIRST
 listingRouter.get("/categories", getListingCategories);
-listingRouter.get("/search", searchListings);
+listingRouter.get("/search", optionalAuth,searchListings);
+listingRouter.get("/popular", optionalAuth, getPopularListings);
 listingRouter.get("/mine", protectRoute, getMyListings);
 listingRouter.get("/favorites", protectRoute, getMyFavorites);
 listingRouter.get("/:id", getListing);
-listingRouter.get("", getListings);
+listingRouter.get("", optionalAuth, getListings);
 
 // Protected
 listingRouter.post("/create", protectRoute, createListing);

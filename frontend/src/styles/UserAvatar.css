@@ -19,32 +19,38 @@
 
 .user-avatar-dropdown {
   position: absolute;
-  right: 0;
-  top: 50px;
-  background-color: var(--surface);
+  right: -25px;
+  top: calc(100% + 12px);
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 14px;
+  padding: 0.5rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  width: fit-content;
+  min-width: 90px;
   z-index: 1000;
+  animation: dropdown-in 0.15s ease;
 }
 
 .user-avatar-dropdown button {
-  padding: 10px 12px;
+  padding: 0.4rem 0.5rem;
   background: none;
   border: none;
+  border-radius: 6px;
   text-align: left;
-  color: var(--text);
+  color: var(--muted);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  width: 100%;
+  transition: color 0.15s;
 }
 
 .user-avatar-dropdown button:hover {
-  background-color: var(--card-hover);
-  color: #fff;
+  color: var(--text);
+  background: var(--surface);
 }
 
 .user-avatar-container {
@@ -57,4 +63,9 @@
   font-size: 1rem;
   color: var(--muted);
   white-space: nowrap;
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

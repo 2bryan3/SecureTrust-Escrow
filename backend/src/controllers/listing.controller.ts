@@ -22,92 +22,108 @@ export const getListings = async (req: Request, res: Response) => {
     const categoryName = (req.query.category as string | undefined) ?? null;
     const nameSearch = (req.query.name as string | undefined) ?? null;
     const userListings = (req.query.user as string | undefined) ?? null;
-    const favoritesOnly = (req.query.favorites as string | undefined) === "true"; // <-- new
+    const favoritesOnly = (req.query.favorites as string | undefined) === "true";
+    // ---- NEW ----
+    const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
+    const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
+    let attributeFilters: Record<string, string> = {};
+    try {
+      if (req.query.attributes) {
+        attributeFilters = JSON.parse(req.query.attributes as string);
+      }
+    } catch { /* malformed JSON, ignore */ }
+    // -------------
 
-    const userID = req.user?._id; // needed for favorites filter
+    const userID = req.user?._id;
 
-    // if a category filter is provided, fetch its _id first
     let categoryID: mongoose.Types.ObjectId | null = null;
     if (categoryName) {
       const category = await Category.findOne({ name: categoryName }).select("_id");
-      if (!category) {
-        return res.status(200).json({ listings: [] });
-      }
+      if (!category) return res.status(200).json({ listings: [] });
       categoryID = category._id as mongoose.Types.ObjectId;
     }
 
-    // build pipeline
     const pipeline: any[] = [];
 
-    // Initial category links lookup for filtering
     pipeline.push({
-    $lookup: {
+      $lookup: {
         from: "listingCategories",
         localField: "_id",
         foreignField: "listingID",
         as: "categoryLinks"
-    }
+      }
     });
 
     if (nameSearch) {
-    pipeline.push({ $match: { title: { $regex: nameSearch, $options: "i" } } });
+      pipeline.push({ $match: { title: { $regex: nameSearch, $options: "i" } } });
     }
 
     if (userListings) {
-    pipeline.push({ $match: { userID } });
+      pipeline.push({ $match: { userID } });
     }
 
     if (categoryID) {
-    pipeline.push({ $match: { "categoryLinks.categoryID": categoryID } });
+      pipeline.push({ $match: { "categoryLinks.categoryID": categoryID } });
     }
 
-    // Lookup images
-    pipeline.push({
-    $lookup: { from: "listingImages", localField: "_id", foreignField: "listingID", as: "images" }
-    });
+    // ---- NEW ----
+    if (minPrice !== null || maxPrice !== null) {
+      const priceFilter: any = {};
+      if (minPrice !== null) priceFilter.$gte = minPrice;
+      if (maxPrice !== null) priceFilter.$lte = maxPrice;
+      pipeline.push({ $match: { price: priceFilter } });
+    }
 
-    // Lookup categories
-    pipeline.push({
-    $lookup: { from: "categories", localField: "categoryLinks.categoryID", foreignField: "_id", as: "categoriesData" }
-    });
+    for (const [key, value] of Object.entries(attributeFilters)) {
+      if (value && value.trim() !== "") {
+        pipeline.push({ $match: { [`attributes.${key}`]: { $regex: value, $options: "i" } } });
+      }
+    }
+    // -------------
 
-    // Lookup user
     pipeline.push({
-    $lookup: {
+      $lookup: { from: "listingImages", localField: "_id", foreignField: "listingID", as: "images" }
+    });
+    pipeline.push({
+      $lookup: { from: "categories", localField: "categoryLinks.categoryID", foreignField: "_id", as: "categoriesData" }
+    });
+    pipeline.push({
+      $lookup: {
         from: "users", localField: "userID", foreignField: "_id", as: "user",
         pipeline: [{ $project: { password: 0 } }]
-    }
+      }
     });
 
-    // Lookup favorites
     if (userID) {
-    pipeline.push({
+      pipeline.push({
         $lookup: {
-        from: "listingfavorites",
-        let: { listingId: "$_id" },
-        pipeline: [{ $match: { $expr: { $and: [{ $eq: ["$listingID", "$$listingId"] }, { $eq: ["$userID", userID] }] } } }],
-        as: "favorites"
+          from: "listingfavorites",
+          let: { listingId: "$_id" },
+          pipeline: [{ $match: { $expr: { $and: [
+            { $eq: ["$listingID", "$$listingId"] },
+            { $eq: ["$userID", userID] }
+          ]}}}],
+          as: "favorites"
         }
-    });
+      });
 
-    if (favoritesOnly) {
+      if (favoritesOnly) {
         pipeline.push({ $match: { "favorites.0": { $exists: true } } });
-    }
+      }
     }
 
-    // Transform
     pipeline.push({
-    $addFields: {
+      $addFields: {
         images: { $slice: ["$images.image", 1] },
         categories: "$categoriesData.name",
         user: { $arrayElemAt: ["$user", 0] },
         isFavorited: { $gt: [{ $size: { $ifNull: ["$favorites", []] } }, 0] }
-    }
+      }
     });
 
-    // Cleanup
     pipeline.push({ $project: { categoryLinks: 0, favorites: 0, categoriesData: 0 } });
-    pipeline.push({ $sort: sortAttributeMap[sortBy] });
+    pipeline.push({ $sort: sortAttributeMap[sortBy] ?? { createdAt: -1 } });
+
     const listings = await Listing.aggregate(pipeline);
     return res.status(200).json({ listings });
 
@@ -522,6 +538,76 @@ export const getMyFavorites = async (req: Request, res: Response) => {
     const listings = await Listing.aggregate(pipeline);
     return res.status(200).json({ listings });
   } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const getPopularListings = async (req: Request, res: Response) => {
+  try {
+    const userID = req.user?._id;
+
+    const pipeline: any[] = [
+      // Count favorites per listing
+      {
+        $lookup: {
+          from: "listingfavorites",
+          localField: "_id",
+          foreignField: "listingID",
+          as: "allFavorites"
+        }
+      },
+
+      // Only include listings with at least 1 favorite
+      { $match: { "allFavorites.0": { $exists: true } } },
+
+      // Add favorite count for sorting
+      { $addFields: { favoriteCount: { $size: "$allFavorites" } } },
+
+      // Sort by most favorited
+      { $sort: { favoriteCount: -1 } },
+
+      { $limit: 20 },
+
+      // Standard lookups
+      { $lookup: { from: "listingCategories", localField: "_id", foreignField: "listingID", as: "categoryLinks" } },
+      { $lookup: { from: "categories", localField: "categoryLinks.categoryID", foreignField: "_id", as: "categoriesData" } },
+      { $lookup: { from: "listingImages", localField: "_id", foreignField: "listingID", as: "images" } },
+      { $lookup: { from: "users", localField: "userID", foreignField: "_id", as: "user",
+          pipeline: [{ $project: { password: 0 } }]
+      }},
+    ];
+
+    // Per-user isFavorited
+    if (userID) {
+      pipeline.push({
+        $lookup: {
+          from: "listingfavorites",
+          let: { listingId: "$_id" },
+          pipeline: [{ $match: { $expr: { $and: [
+            { $eq: ["$listingID", "$$listingId"] },
+            { $eq: ["$userID", userID] }
+          ]}}}],
+          as: "userFavorites"
+        }
+      });
+    }
+
+    pipeline.push({
+      $addFields: {
+        images: { $slice: ["$images.image", 1] },
+        categories: "$categoriesData.name",
+        user: { $arrayElemAt: ["$user", 0] },
+        isFavorited: { $gt: [{ $size: { $ifNull: ["$userFavorites", []] } }, 0] }
+      }
+    });
+
+    pipeline.push({ $project: { categoryLinks: 0, categoriesData: 0, allFavorites: 0, userFavorites: 0 } });
+
+    const listings = await Listing.aggregate(pipeline);
+    return res.status(200).json({ listings });
+
+  } catch (err: any) {
+    console.error(err);
     return res.status(500).json({ error: err.message });
   }
 };

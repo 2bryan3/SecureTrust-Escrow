@@ -8,9 +8,10 @@ import type { ListingInput } from "../types/listing.types";
 import { Footer } from "../components/Footer";
 import "../styles/CreateItem.css";
 import { categoryFields, allCategories } from "../data/categoryFields";
+import { CustomSelect } from "../components/CustomSelect";
 
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Component ─────────────────
 export const CreateItem = () => {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -215,18 +216,16 @@ export const CreateItem = () => {
                 {dropdownOpen && (
                   <div className="cl-dropdown-menu">
                     {allCategories.map((cat) => (
-                      <label key={cat} className="cl-dropdown-item">
-                        <input
-                          type="radio"
-                          checked={selectedCategories.includes(cat)}
-                          onChange={() =>
-                            setSelectedCategories((prev) =>
-                              prev.includes(cat) ? [] : [cat]
-                            )
-                          }
-                        />
+                      <button
+                        key={cat}
+                        className={`cl-dropdown-item ${selectedCategories.includes(cat) ? "selected" : ""}`}
+                        onClick={() => {
+                          setSelectedCategories(selectedCategories.includes(cat) ? [] : [cat]);
+                          setDropdownOpen(false);
+                        }}
+                      >
                         <span>{cat}</span>
-                      </label>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -241,15 +240,15 @@ export const CreateItem = () => {
                     <div key={field.key} className="cl-field">
                       <label>{field.label}</label>
                       {field.type === "select" ? (
-                        <select
+                        <CustomSelect
                           value={attributes[field.key] || ""}
-                          onChange={(e) => handleAttributeChange(field.key, e.target.value)}
-                        >
-                          <option value="">Select {field.label}...</option>
-                          {field.options?.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
+                          onChange={val => handleAttributeChange(field.key, val)}
+                          options={[
+                            { label: `Select ${field.label}...`, value: "" },
+                            ...(field.options?.map(opt => ({ label: opt, value: opt })) ?? []),
+                          ]}
+                          placeholder={`Select ${field.label}...`}
+                        />
                       ) : (
                         <input
                           type={field.type}

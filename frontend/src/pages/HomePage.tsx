@@ -43,7 +43,10 @@ export const HomePage = () => {
     <div className="home-content">
       <HeroBanner />
       <StatsStrip />
-      <CategoryChips onSelect={(cat) => setSelectedCategory(cat)} />
+      <CategoryChips
+        categories={["Electronics", "Fashion", "Gaming", "Vehicles", "Furniture", "Books", "Services"]}
+        onSelect={(cat) => setSelectedCategory(cat)}
+      />
       <h2 className="section-title">New Listings</h2>
       {error ? (
         <p style={{ color: "var(--muted)", textAlign: "center" }}>{error}</p>

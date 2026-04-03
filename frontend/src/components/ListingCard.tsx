@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 type ListingCardProps = {
   listing: ListingData;
   onClick?: () => void;
+  favoriteCount?: number;
 };
 
 const getTag = (listing: ListingData) => {
@@ -17,7 +18,7 @@ const getTag = (listing: ListingData) => {
   return null;
 };
 
-export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
+export const ListingCard: React.FC<ListingCardProps> = ({ listing, favoriteCount }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const tag = getTag(listing);
@@ -84,6 +85,9 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
           {tag && <span className={`dl-card-tag ${tag.cls}`}>{tag.label}</span>}
         </div>
         <p className="dl-card-category">{listing.categories.join(", ")}</p>
+        {favoriteCount !== undefined && (
+          <span className="dl-card-stat">♥ {favoriteCount}</span>
+        )}
       </div>
     </article>
   );

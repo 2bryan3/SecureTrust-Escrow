@@ -21,6 +21,7 @@ export interface ListingData {
   createdAt: string;
   updatedAt: string;
   isFavorited?: boolean;
+  favoriteCount?: number;
   attributes?: Record<string, string>;
 }
 

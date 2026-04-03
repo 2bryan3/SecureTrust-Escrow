@@ -1,0 +1,214 @@
+.adv-search-page {
+  min-height: 100vh;
+  padding: 3rem 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.adv-search-container {
+  width: 100%;
+  max-width: 600px;
+}
+
+.adv-search-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.adv-search-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #f0f4ff;
+  margin: 0 0 0.4rem;
+}
+
+.adv-search-sub {
+  color: #8b97b0;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.adv-search-form {
+  background: #131926;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.adv-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.adv-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #8b97b0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.adv-input {
+  background: #0d1520;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #f0f4ff;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.adv-input:focus {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.adv-input::placeholder {
+  color: #4a5568;
+}
+
+.adv-select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #f0f4ff;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  cursor: pointer;
+}
+
+.adv-select:focus {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.adv-price-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.adv-price-sep {
+  color: #8b97b0;
+  flex-shrink: 0;
+}
+
+.adv-category-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.adv-category-fields-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3b82f6;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.adv-search-btn {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.adv-search-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.adv-input[type=number]::-webkit-outer-spin-button,
+.adv-input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+.adv-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.adv-custom-select-wrapper {
+  position: relative;
+}
+.adv-custom-select-btn {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+}
+.adv-select-caret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform 0.2s;
+  display: inline-block;
+  margin-top: 2px;
+}
+.adv-select-caret.open {
+  transform: rotate(180deg);
+}
+.adv-custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.35rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  max-height: 260px;
+  overflow-y: auto;
+  animation: dropdown-in 0.15s ease;
+}
+.adv-custom-select-item {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s, background 0.15s;
+}
+.adv-custom-select-item:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.adv-custom-select-item.selected {
+  color: #3b82f6;
+}

@@ -33,3 +33,36 @@
   margin: 0 !important;
   padding: 0 !important;
 }
+
+.search-page-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.search-filter-chip {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+}
+
+.search-filter-clear {
+  background: none;
+  border: none;
+  color: #8b97b0;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.search-filter-clear:hover {
+  color: #f0f4ff;
+}

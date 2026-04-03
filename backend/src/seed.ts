@@ -11,6 +11,17 @@ const categories = [
   "Books",
   "Gaming",
   "Services",
+  "Collectibles & Art",
+  "Home & Garden",
+  "Toys & Hobbies",
+  "Sporting Goods",
+  "Health & Beauty",
+  "Jewelry & Watches",
+  "Baby Essentials",
+  "Pet Supplies",
+  "Musical Instruments",
+  "Tools & Hardware",
+  "Livestock",    
 ];
 
 async function seed() {
@@ -34,3 +45,7 @@ seed().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+// This file is meant to be run once to populate the database with initial categories. 
+// Run with `npx ts-node src/seed.ts` from the backend directory. 
+// It will connect to MongoDB, insert the predefined categories if they don't already exist, and then disconnect.
