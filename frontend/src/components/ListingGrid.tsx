@@ -9,9 +9,10 @@ type Props = {
   myListings?: boolean;
   loading?: boolean;
   onListingClick?: (id: string) => void;
+  showFavoriteCount?: boolean;
 };
 
-export const ListingGrid: React.FC<Props> = ({ items, loading, onListingClick }) => {
+export const ListingGrid: React.FC<Props> = ({ items, loading, onListingClick, showFavoriteCount }) => {
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -27,6 +28,7 @@ export const ListingGrid: React.FC<Props> = ({ items, loading, onListingClick })
               key={item._id}
               listing={item}
               onClick={() => onListingClick?.(item._id)}
+              favoriteCount={showFavoriteCount ? item.favoriteCount : undefined}
             />
           ))
         )}
