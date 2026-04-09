@@ -5,6 +5,7 @@ import listingRouter from "./routes/listing.routes";
 import authRouter from "./routes/auth.routes";
 import userRouter from "./routes/user.routes";
 import disputeRouter from "./routes/dispute.routes";
+import adminRouter from "./routes/admin.routes";
 
 const app = express();
 
@@ -20,5 +21,5 @@ app.use("/auth", authRouter);
 app.use("/users", userRouter);
 app.use("/listings", listingRouter);
 app.use("/disputes", disputeRouter);
-
+app.use("/admin", adminRouter);
 export default app;

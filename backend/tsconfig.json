@@ -5,6 +5,7 @@
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "node",
+    "ignoreDeprecations": "5.0",
     "lib": ["ES2022"],
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "strict": true,
