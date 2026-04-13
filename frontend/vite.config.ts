@@ -16,6 +16,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
+      "/auth": { target: "http://localhost:3000", changeOrigin: true },
+      "/users": { target: "http://localhost:3000", changeOrigin: true },
+      "/listings": { target: "http://localhost:3000", changeOrigin: true },
+      "/disputes": { target: "http://localhost:3000", changeOrigin: true },
+      "/conversations": { target: "http://localhost:3000", changeOrigin: true },
+      "/socket.io": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })

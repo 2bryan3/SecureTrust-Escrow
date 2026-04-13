@@ -1,6 +1,7 @@
 // frontend/src/pages/AdminPage.tsx
 import React, { useState } from "react";
 import "../styles/AdminPage.css";
+import { NavBar } from "../components/NavBar";
 
 interface User {
   id: string;
@@ -61,6 +62,7 @@ export const AdminPage: React.FC = () => {
 
   return (
     <div className="admin-page">
+      <NavBar />
 
       {/* Header */}
       <div className="admin-header">
