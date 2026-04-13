@@ -3,6 +3,7 @@ import { Router, Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
 import { Types } from "mongoose";
+import { stripe } from "../utils/stripe";
 
 const router = Router();
 
@@ -134,8 +135,11 @@ router.patch("/:id/milestone1/seller", async (req: Request, res: Response) => {
 
 // ─── PATCH /transactions/:id/milestone1/buyer ────────────────────────────────
 /**
- * Buyer deposits funds for Milestone 1.
- * Body: { buyerId, depositTxRef }
+ * Buyer confirms their deposit for Milestone 1 after completing Stripe payment.
+ * The frontend calls POST /payment/create-payment-intent first, confirms the card
+ * via Stripe.js, then calls this endpoint with the resulting paymentIntentId.
+ *
+ * Body: { buyerId, paymentIntentId }
  */
 router.patch("/:id/milestone1/buyer", async (req: Request, res: Response) => {
   try {
@@ -145,7 +149,7 @@ router.patch("/:id/milestone1/buyer", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Transaction is not in milestone 1." });
     }
 
-    const { buyerId, depositTxRef } = req.body;
+    const { buyerId, paymentIntentId } = req.body;
 
     if (getRole(tx, buyerId) !== "buyer") {
       return res.status(403).json({ error: "Only the buyer can deposit funds." });
@@ -153,19 +157,35 @@ router.patch("/:id/milestone1/buyer", async (req: Request, res: Response) => {
     if (tx.milestone1.buyerFundsDeposited) {
       return res.status(400).json({ error: "Funds already deposited for this milestone." });
     }
+    if (!paymentIntentId) {
+      return res.status(400).json({ error: "paymentIntentId is required." });
+    }
 
+    // Verify with Stripe that the PaymentIntent was authorized (card held, not yet charged)
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status !== "requires_capture") {
+      return res.status(400).json({
+        error: `Payment is not in an authorized state. Current status: ${paymentIntent.status}`,
+      });
+    }
+
+    // Confirm the PaymentIntent belongs to this transaction
+    if (paymentIntent.metadata.transactionId !== tx._id.toString()) {
+      return res.status(400).json({ error: "PaymentIntent does not match this transaction." });
+    }
+
+    tx.stripePaymentIntentId          = paymentIntentId;
     tx.milestone1.buyerFundsDeposited = true;
     tx.milestone1.buyerDepositedAt    = new Date();
-    tx.milestone1.depositTxRef        = depositTxRef ?? null;
-    tx.escrowAmount                   = tx.amount; // full amount now held
+    tx.milestone1.depositTxRef        = paymentIntentId;
+    tx.escrowAmount                   = tx.amount;
 
-    // Advance milestone1 status
     const sellerDone = !!tx.milestone1.sellerSubmittedAt;
     tx.milestone1.status = sellerDone ? "completed" : "buyer_funded";
 
-    // If seller already submitted, move to milestone 2
     if (sellerDone) {
-      tx.status = "milestone2";
+      tx.status            = "milestone2";
       tx.milestone2.status = "awaiting_confirmation";
     }
 
@@ -203,21 +223,26 @@ router.patch("/:id/milestone2/confirm", async (req: Request, res: Response) => {
     tx.milestone2.buyerConfirmNote = buyerConfirmNote ?? null;
     tx.milestone2.status           = "confirmed";
 
-    // ── Fund release ──────────────────────────────────────────────────────
-    // In production, call your payment processor here (Stripe, etc.)
-    // For now we record the release on the model.
+    // ── Fund release via Stripe ───────────────────────────────────────────
+    // Capture the previously authorized PaymentIntent — this is when the
+    // buyer's card is actually charged.
+    if (!tx.stripePaymentIntentId) {
+      return res.status(400).json({ error: "No Stripe PaymentIntent found on this transaction." });
+    }
+
+    const capture = await stripe.paymentIntents.capture(tx.stripePaymentIntentId);
+
     tx.milestone2.fundsReleasedAt = new Date();
+    tx.milestone2.releaseTxRef    = capture.id;
     tx.milestone2.status          = "funds_released";
-    tx.escrowAmount               = 0;       // funds no longer held
+    tx.escrowAmount               = 0;
     tx.status                     = "completed";
 
-    // Credit the seller's in-app balance (mirrors User.funds)
-    await User.findByIdAndUpdate(tx.sellerId, {
-      $inc: { funds: tx.amount },
-    });
+    // Credit the seller's in-app balance (simulates payout until Stripe Connect is set up)
+    await User.findByIdAndUpdate(tx.sellerId, { $inc: { funds: tx.amount } });
 
     await tx.save();
-    return res.json({ transaction: tx, message: "Funds released to seller." });
+    return res.json({ transaction: tx, message: "Funds captured and released to seller." });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -247,12 +272,10 @@ router.patch("/:id/cancel", async (req: Request, res: Response) => {
     tx.cancelledAt = new Date();
     tx.cancelledBy = role;
 
-    // If buyer had already deposited, refund escrow
-    if (tx.milestone1.buyerFundsDeposited) {
+    // If buyer had already deposited, cancel the Stripe PaymentIntent to release the hold
+    if (tx.milestone1.buyerFundsDeposited && tx.stripePaymentIntentId) {
+      await stripe.paymentIntents.cancel(tx.stripePaymentIntentId);
       tx.escrowAmount = 0;
-      await User.findByIdAndUpdate(tx.buyerId, {
-        $inc: { funds: tx.amount },
-      });
     }
 
     await tx.save();
