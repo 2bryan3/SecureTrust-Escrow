@@ -11,8 +11,10 @@ import { MediatorPage } from "../pages/MediatorPage";
 import { AdminPage } from "../pages/AdminPage";
 import { RequireAuth } from "../context/RequireAuth";
 import { useAuth } from "../context/AuthContext";
-import { Search } from "lucide-react";
 import { SearchPage } from "../pages/SearchPage";
+import { PopularPage } from "../pages/PopularPage";
+import { AdvancedSearchPage } from "../pages/AdvanceSearchPage";
+
 
 // ── Role guards ───────────────────────────────────────────────────────────────
 const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
@@ -41,6 +43,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/search" element={<SearchPage />} />
+      <Route path="/popular" element={<PopularPage />} />
+      <Route path="/search/advanced" element={<AdvancedSearchPage />} />
 
       {/* Requires login */}
       <Route path="/create" element={
