@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import type { ListingData } from "../types/listing.types";
+import { Settings, Scale } from "lucide-react";
 
 type Tab = "info" | "listings" | "favorites" | "cases" | "overview";
 
@@ -170,7 +171,9 @@ export default function Profile() {
           {isPrivileged ? (
             <>
               <div className="profile-stat-card">
-                <span className="profile-stat-value">{statsLoading ? "—" : disputesCount}</span>
+                <span className={`profile-stat-value ${disputesCount > 0 ? "profile-stat-value--alert" : ""}`}>
+                  {statsLoading ? "—" : disputesCount}
+                </span>
                 <span className="profile-stat-label">Active Cases</span>
               </div>
               <div className="profile-stat-card">
@@ -184,13 +187,13 @@ export default function Profile() {
                 <span className="profile-stat-label">Member Since</span>
               </div>
               {isAdmin && (
-                <div className="profile-stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/admin")}>
-                  <span className="profile-stat-value">→</span>
+                <div className="profile-stat-card profile-stat-card--link" onClick={() => navigate("/admin")}>
+                  <Settings size={22} strokeWidth={1.75} color="var(--muted)" />
                   <span className="profile-stat-label">Admin Dashboard</span>
                 </div>
               )}
-              <div className="profile-stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/mediator")}>
-                <span className="profile-stat-value">→</span>
+              <div className="profile-stat-card profile-stat-card--link" onClick={() => navigate("/mediator")}>
+                <Scale size={22} strokeWidth={1.75} color="var(--muted)" />
                 <span className="profile-stat-label">Mediator Dashboard</span>
               </div>
             </>
