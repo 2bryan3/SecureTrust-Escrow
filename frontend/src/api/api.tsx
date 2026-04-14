@@ -1,6 +1,8 @@
 export const API_BASE =
   import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+  console.log("FETCH_BASE:", import.meta.env.VITE_API_URL);
+  
 // Use relative URLs in dev so requests go through the Vite proxy (avoids CORS).
 // In production, VITE_API_URL should be set to the backend origin.
 const FETCH_BASE = import.meta.env.VITE_API_URL ?? "";
