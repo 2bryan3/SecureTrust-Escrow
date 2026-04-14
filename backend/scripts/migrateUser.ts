@@ -1,7 +1,7 @@
 // backend/scripts/migrateUser.ts
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import { UserModel } from "../src/models/User";
+import { User } from "../src/models/user.model";
 
 dotenv.config();
 
@@ -15,7 +15,7 @@ async function migrateUsers() {
   await mongoose.connect(mongoUri, {});
   console.log("Connected to MongoDB for migration");
 
-  const users = await UserModel.find({});
+  const users = await User.find({});
 
   for (const user of users) {
     // Cast user to include optional 'name' for migration purposes

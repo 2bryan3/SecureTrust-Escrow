@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from "react";
 import type { User } from "../types/user.type";
 import { api } from "../api/api";
+import { disconnectSocket } from "../utils/socket";
 
 export type AuthContextType = {
   user: User | null;
   loading: boolean;
   signup: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
@@ -26,9 +27,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 };
 
-async function login(email: string, password: string) {
+async function login(email: string, password: string): Promise<User> {
   const data = await api<User>("/auth/login", { method: "POST", body: { email, password } });
-  setUser(data); // backend returns user directly, no wrapper
+  setUser(data);
+  return data;
 }
 
 async function signup(email: string, password: string, firstName: string, lastName: string) {
@@ -38,6 +40,7 @@ async function signup(email: string, password: string, firstName: string, lastNa
 
   async function logout() {
     await api("/auth/logout", { method: "POST" });
+    disconnectSocket();
     setUser(null);
   }
 

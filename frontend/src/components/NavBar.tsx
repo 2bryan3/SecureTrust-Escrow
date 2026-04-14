@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { MessageCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import "../styles/NavBar.css";
+import { useConversationContext } from "../context/ConversationContext";
 import { UserAvatar } from "./UserAvatar";
+import { MessagesPanel } from "./MessagesPanel";
+import "../styles/NavBar.css";
 
 type NavbarProps = { logo?: string };
 
 export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
   const { user, loading } = useAuth();
+  const { setPanelOpen, unreadCount } = useConversationContext();
   const navigate = useNavigate();
   const [query, setQuery]           = useState("");
   const [showCategories, setShowCategories] = useState(false);
@@ -43,8 +47,9 @@ export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
   };
 
   return (
-    <header className="navbar">
-      <Link to="/" className="navbar-logo">{logo}</Link>
+    <>
+      <header className="navbar">
+        <Link to="/" className="navbar-logo">{logo}</Link>
 
       <nav className="navbar-links">
         <Link to="/popular" className="navbar-popular-link">Popular Now</Link>
@@ -96,16 +101,34 @@ export const NavBar: React.FC<NavbarProps> = ({ logo = "SecureTrust" }) => {
         Advanced Search
       </button>
 
-      <div className="navbar-actions">
-        <div className="navbar-auth">
-          {loading ? <span>Loading...</span> : user ? <UserAvatar /> : (
-            <>
-              <Link to="/login">Login</Link>
-              <Link to="/signup">Signup</Link>
-            </>
+        <div className="navbar-actions">
+          {!loading && user && (
+            <button
+              className="navbar-messages-btn"
+              onClick={() => setPanelOpen(true)}
+              title="Messages"
+              aria-label="Open messages"
+            >
+              <MessageCircle size={22} />
+              {unreadCount > 0 && (
+                <span className="navbar-messages-badge">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
           )}
+          <div className="navbar-auth">
+            {loading ? <span>Loading...</span> : user ? <UserAvatar /> : (
+              <>
+                <Link to="/login">Login</Link>
+                <Link to="/signup">Signup</Link>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <MessagesPanel />
+    </>
   );
 };
