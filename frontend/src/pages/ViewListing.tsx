@@ -6,13 +6,17 @@ import type { TransactionData } from "../types/transaction.types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ListingDashboardPopup } from "../components/ListingDashboardPopup";
 import { EditListingPopup } from "../components/EditListingPopup";
+import { NavBar } from "../components/NavBar";
 import { useAuth } from "../context/AuthContext";
+import { useConversationContext } from "../context/ConversationContext";
+import { api } from "../api/api";
+import type { Conversation } from "../context/ConversationContext";
 
 export const ViewListing: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+  const { conversations, setConversations, setPanelOpen, setActiveConversationId } = useConversationContext();
 
   const [loading, setLoading]               = useState(true);
   const [data, setData]                     = useState<ListingData>();
@@ -97,6 +101,20 @@ export const ViewListing: React.FC = () => {
     }
   };
 
+  const handleMessageSeller = async () => {
+    if (!data || !user) return;
+    const conversation = await api<Conversation>("/api/conversations", {
+      method: "POST",
+      body: { participantId: data.user._id },
+    });
+    // Add to list if not already present
+    setConversations(prev =>
+      prev.some(c => c._id === conversation._id) ? prev : [conversation, ...prev]
+    );
+    setActiveConversationId(conversation._id);
+    setPanelOpen(true);
+  };
+
   if (loading) return <LoadingSpinner size="small" />;
   if (error)   return <p className="vl-error">Error: {error}</p>;
   if (!data)   return <p className="vl-error">No listing found.</p>;
@@ -105,6 +123,7 @@ export const ViewListing: React.FC = () => {
 
   return (
     <div className="vl-page-bg">
+      <NavBar />
 
       {/* Top bar */}
       <div className="vl-topbar">
@@ -217,6 +236,11 @@ export const ViewListing: React.FC = () => {
             {!isOwner && !data.isSold && (
               <button className="vl-btn-primary" onClick={handleBuyNow}>
                 Buy Now
+              </button>
+            )}
+            {!isOwner && user && (
+              <button className="vl-btn-secondary" onClick={handleMessageSeller}>
+                Message Seller
               </button>
             )}
             <button className="vl-btn-secondary" onClick={handleManageSale}>
