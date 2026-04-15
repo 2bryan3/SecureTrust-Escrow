@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import "../styles/ListingDashboard.css";
 import axios from "axios";
 import { ToastPortal } from "./ToastPortal";
+import { StripePaymentModal } from "./StripePaymentModal";
 import type {
   TransactionData,
   Milestone1Data,
@@ -99,6 +100,7 @@ interface M1PanelProps {
   isSeller: boolean;
   m1: Milestone1Data;
   amount: number;
+  currency: string;
   transaction: TransactionData;
   onUpdate: (tx: TransactionData) => void;
   onToast: (msg: string, type: "success" | "error") => void;
@@ -106,14 +108,14 @@ interface M1PanelProps {
 }
 
 const Milestone1Panel: React.FC<M1PanelProps> = ({
-  txId, currentUserId, isBuyer, isSeller, m1, amount, transaction, onUpdate, onToast, mockMode,
+  txId, currentUserId, isBuyer, isSeller, m1, amount, currency, transaction, onUpdate, onToast, mockMode,
 }) => {
-  const [trackingNum, setTrackingNum] = useState(m1.trackingNumber ?? "");
-  const [carrier, setCarrier]         = useState(m1.trackingCarrier ?? "");
-  const [imageUrl, setImageUrl]       = useState(m1.packageImageUrl ?? "");
-  const [uploading, setUploading]     = useState(false);
-  const [depositing, setDepositing]   = useState(false);
-  const fileInputRef                  = useRef<HTMLInputElement>(null);
+  const [trackingNum, setTrackingNum]       = useState(m1.trackingNumber ?? "");
+  const [carrier, setCarrier]               = useState(m1.trackingCarrier ?? "");
+  const [imageUrl, setImageUrl]             = useState(m1.packageImageUrl ?? "");
+  const [uploading, setUploading]           = useState(false);
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const fileInputRef                        = useRef<HTMLInputElement>(null);
 
   const sellerDone = !!m1.sellerSubmittedAt;
   const buyerDone  = m1.buyerFundsDeposited;
@@ -138,126 +140,144 @@ const Milestone1Panel: React.FC<M1PanelProps> = ({
     }
   };
 
-  const handleDeposit = async () => {
-    setDepositing(true);
+  const handleMockDeposit = async () => {
     try {
       const body = { buyerId: currentUserId, depositTxRef: `sim_${Date.now()}` };
-      const updated = mockMode
-        ? applyMockAction(transaction, "milestone1/buyer", body)
-        : await patchTx(txId, "milestone1/buyer", body);
+      const updated = applyMockAction(transaction, "milestone1/buyer", body);
       onUpdate(updated);
-      onToast(`$${amount.toLocaleString()} deposited into escrow.`, "success");
+      onToast(`$${amount.toLocaleString()} deposited into escrow (mock).`, "success");
     } catch (e: any) {
       onToast(e.message, "error");
-    } finally {
-      setDepositing(false);
     }
   };
 
   return (
-    <div className="dashboard-section">
-      <h3>Milestone 1 — Shipment &amp; Fund Deposit</h3>
-      <p className="order-subtitle" style={{ marginBottom: "1rem" }}>
-        Both parties must act before this milestone closes.
-      </p>
+    <>
+      {showStripeModal && (
+        <StripePaymentModal
+          transactionId={txId}
+          buyerId={currentUserId}
+          amount={amount}
+          currency={currency}
+          onSuccess={(updated) => {
+            setShowStripeModal(false);
+            onUpdate(updated);
+            onToast(`$${amount.toLocaleString()} authorized in escrow.`, "success");
+          }}
+          onClose={() => setShowStripeModal(false)}
+        />
+      )}
 
-      {/* Checklist */}
-      <div className="milestone-card" style={{ marginBottom: "8px" }}>
-        <span>{sellerDone ? "✅" : "📦"} Seller — Upload tracking number &amp; package photo</span>
-        <span className={`status ${sellerDone ? "completed" : "pending"}`}>
-          {sellerDone ? `${m1.trackingCarrier ?? "Carrier"}: ${m1.trackingNumber}` : "Pending"}
-        </span>
-      </div>
-      <div className="milestone-card" style={{ marginBottom: "1rem" }}>
-        <span>{buyerDone ? "✅" : "💳"} Buyer — Deposit ${amount.toLocaleString()} into escrow</span>
-        <span className={`status ${buyerDone ? "completed" : "pending"}`}>
-          {buyerDone ? "Funded" : "Pending"}
-        </span>
-      </div>
+      <div className="dashboard-section">
+        <h3>Milestone 1 — Shipment &amp; Fund Deposit</h3>
+        <p className="order-subtitle" style={{ marginBottom: "1rem" }}>
+          Both parties must act before this milestone closes.
+        </p>
 
-      {/* Seller action */}
-      {isSeller && !sellerDone && (
-        <div className="actions-section">
-          <h3>⚠️ Your action required</h3>
-          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Package photo</label>
-          <div className="evidence-dropzone" onClick={() => fileInputRef.current?.click()}>
-            {imageUrl
-              ? <img src={imageUrl} alt="Package preview" style={{ maxHeight: "120px", borderRadius: "8px" }} />
-              : <><span className="evidence-icon">📷</span><span className="evidence-hint">Click to attach package photo</span></>
-            }
-          </div>
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setImageUrl(URL.createObjectURL(file));
-            }}
-          />
+        {/* Checklist */}
+        <div className="milestone-card" style={{ marginBottom: "8px" }}>
+          <span>{sellerDone ? "✅" : "📦"} Seller — Upload tracking number &amp; package photo</span>
+          <span className={`status ${sellerDone ? "completed" : "pending"}`}>
+            {sellerDone ? `${m1.trackingCarrier ?? "Carrier"}: ${m1.trackingNumber}` : "Pending"}
+          </span>
+        </div>
+        <div className="milestone-card" style={{ marginBottom: "1rem" }}>
+          <span>{buyerDone ? "✅" : "💳"} Buyer — Deposit ${amount.toLocaleString()} into escrow</span>
+          <span className={`status ${buyerDone ? "completed" : "pending"}`}>
+            {buyerDone ? "Funded" : "Pending"}
+          </span>
+        </div>
 
-          <label style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "0.5rem", display: "block" }}>
-            Or paste image URL
-          </label>
-          <input
-            className="escalation-reason"
-            style={{ padding: "8px 12px", marginBottom: "8px" }}
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://..."
-          />
-
-          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Tracking number</label>
-          <div className="cl-field" style={{ marginBottom: "8px" }}>
+        {/* Seller action */}
+        {isSeller && !sellerDone && (
+          <div className="actions-section">
+            <h3>⚠️ Your action required</h3>
+            <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Package photo</label>
+            <div className="evidence-dropzone" onClick={() => fileInputRef.current?.click()}>
+              {imageUrl
+                ? <img src={imageUrl} alt="Package preview" style={{ maxHeight: "120px", borderRadius: "8px" }} />
+                : <><span className="evidence-icon">📷</span><span className="evidence-hint">Click to attach package photo</span></>
+              }
+            </div>
             <input
-              type="text"
-              placeholder="1Z999AA10123456784"
-              value={trackingNum}
-              onChange={(e) => setTrackingNum(e.target.value)}
-              style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box" }}
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setImageUrl(URL.createObjectURL(file));
+              }}
             />
+
+            <label style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "0.5rem", display: "block" }}>
+              Or paste image URL
+            </label>
+            <input
+              className="escalation-reason"
+              style={{ padding: "8px 12px", marginBottom: "8px" }}
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://..."
+            />
+
+            <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Tracking number</label>
+            <div className="cl-field" style={{ marginBottom: "8px" }}>
+              <input
+                type="text"
+                placeholder="1Z999AA10123456784"
+                value={trackingNum}
+                onChange={(e) => setTrackingNum(e.target.value)}
+                style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box" }}
+              />
+            </div>
+
+            <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Carrier (optional)</label>
+            <select
+              style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box", marginBottom: "12px" }}
+              value={carrier}
+              onChange={(e) => setCarrier(e.target.value)}
+            >
+              <option value="">Select carrier…</option>
+              {["UPS", "FedEx", "USPS", "DHL", "Other"].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <button className="action-btn upload" onClick={handleSellerSubmit} disabled={uploading}>
+              {uploading ? "Submitting…" : "Submit Shipping Info"}
+            </button>
           </div>
+        )}
 
-          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Carrier (optional)</label>
-          <select
-            style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box", marginBottom: "12px" }}
-            value={carrier}
-            onChange={(e) => setCarrier(e.target.value)}
-          >
-            <option value="">Select carrier…</option>
-            {["UPS", "FedEx", "USPS", "DHL", "Other"].map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+        {/* Buyer action */}
+        {isBuyer && !buyerDone && (
+          <div className="actions-section">
+            <h3>⚠️ Your action required</h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "12px" }}>
+              Deposit <strong>${amount.toLocaleString()}</strong> into escrow. Funds are held
+              securely until you confirm delivery in Milestone 2.
+            </p>
+            {mockMode ? (
+              <button className="action-btn add" onClick={handleMockDeposit}>
+                Deposit ${amount.toLocaleString()} into Escrow (mock)
+              </button>
+            ) : (
+              <button className="action-btn add" onClick={() => setShowStripeModal(true)}>
+                Deposit ${amount.toLocaleString()} into Escrow
+              </button>
+            )}
+          </div>
+        )}
 
-          <button className="action-btn upload" onClick={handleSellerSubmit} disabled={uploading}>
-            {uploading ? "Submitting…" : "Submit Shipping Info"}
-          </button>
-        </div>
-      )}
-
-      {/* Buyer action */}
-      {isBuyer && !buyerDone && (
-        <div className="actions-section">
-          <h3>⚠️ Your action required</h3>
-          <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "12px" }}>
-            Deposit <strong>${amount.toLocaleString()}</strong> into escrow. Funds are held
-            securely until you confirm delivery in Milestone 2.
-          </p>
-          <button className="action-btn add" onClick={handleDeposit} disabled={depositing}>
-            {depositing ? "Processing…" : `Deposit $${amount.toLocaleString()} into Escrow`}
-          </button>
-        </div>
-      )}
-
-      {isSeller && sellerDone && !buyerDone && (
-        <p className="dashboard-waiting">⏳ Waiting for the buyer to deposit funds…</p>
-      )}
-      {isBuyer && buyerDone && !sellerDone && (
-        <p className="dashboard-waiting">⏳ Waiting for the seller to submit tracking info…</p>
-      )}
-    </div>
+        {isSeller && sellerDone && !buyerDone && (
+          <p className="dashboard-waiting">⏳ Waiting for the buyer to deposit funds…</p>
+        )}
+        {isBuyer && buyerDone && !sellerDone && (
+          <p className="dashboard-waiting">⏳ Waiting for the seller to submit tracking info…</p>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -485,6 +505,7 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
               isSeller={isSeller}
               m1={milestone1}
               amount={amount}
+              currency={transaction.currency}
               transaction={transaction}
               onUpdate={onTransactionUpdate}
               onToast={showToast}

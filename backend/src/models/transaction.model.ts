@@ -98,6 +98,9 @@ const transactionSchema = new mongoose.Schema(
     // Optional agreed-upon notes / terms
     terms: { type: String, default: null },
 
+    // --- Stripe ---
+    stripePaymentIntentId: { type: String, default: null }, // PaymentIntent ID for escrow
+
     // Soft-delete / audit
     cancelledAt: { type: Date, default: null },
     cancelledBy: { type: String, enum: ["buyer", "seller", "admin", null], default: null },
