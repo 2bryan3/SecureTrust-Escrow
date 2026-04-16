@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from "react";
 import "../styles/AdminPage.css";
 import axios from "axios";
 import { api } from "../api/api";
-import { NavBar } from "../components/NavBar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -293,7 +292,6 @@ export const AdminPage: React.FC = () => {
 
   return (
     <div className="admin-page">
-      <NavBar />
 
       {/* Toast */}
       {toast && <div className="admin-toast">{toast}</div>}
