@@ -11,11 +11,22 @@ const UserSchema = new mongoose.Schema(
     role: { type: String, enum: ["user", "mediator", "admin"], default: "user" },
     isBanned:   { type: Boolean, default: false },
     avatar:     { type: String, default: "..." },
-    funds:      { type: Number, default: 0 },
-    status:      { type: String, enum: ["active", "suspended"], default: "active" },
+    funds:      { type: Number, default: 0 }, 
+    address:    { type: String },
+    location:   {
+      type: {
+        type: String,
+        enum: ["Point"],
+      },
+      coordinates: {
+        type: [Number], // [lon, lat]
+      }
+    },
+    city: String,
+    state: String
   },
   { timestamps: true, versionKey: false }
 );
-
+UserSchema.index({ location: "2dsphere" });
 export type UserType = InferSchemaType<typeof UserSchema>;
 export const User = mongoose.model("User", UserSchema);
