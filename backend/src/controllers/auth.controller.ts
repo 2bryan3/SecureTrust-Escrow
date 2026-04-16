@@ -161,6 +161,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             return res.status(401).json({ message: "Banned user"})
         }
         console.log("Sucessful authenticated")
+        console.log("user: ", user)
         req.user = user as any;
         next();
     } catch {

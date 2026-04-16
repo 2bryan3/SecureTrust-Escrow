@@ -1,6 +1,7 @@
 import {Request, Response} from "express";
 import {Listing} from "../models/listing.model";
 import { Category } from "../models/categories.model";
+import { User } from "../models/user.model";
 import mongoose from "mongoose";
 import { ListingInputSchema } from "../schemas/listing.schema";
 import { ListingImage } from "../models/listingImage.model"
@@ -8,6 +9,7 @@ import { CategoryInputSchema } from "../schemas/category.schema";
 import { ListingCategory } from "../models/listingCategory.model";
 import { ListingFavorites } from "../models/listingFavorite.model";
 import { ListingReport } from "../models/listingReport.model";
+import { geocodeAddress } from "../utils/geocodeAddress";
 const sortAttributeMap: Record<string, Record<string, 1 | -1>> = {
     newest:   { createdAt: -1 },
     oldest:   { createdAt: 1 },
@@ -117,7 +119,9 @@ export const getListings = async (req: Request, res: Response) => {
         images: { $slice: ["$images.image", 1] },
         categories: "$categoriesData.name",
         user: { $arrayElemAt: ["$user", 0] },
-        isFavorited: { $gt: [{ $size: { $ifNull: ["$favorites", []] } }, 0] }
+        isFavorited: { $gt: [{ $size: { $ifNull: ["$favorites", []] } }, 0] },
+        city: "$city",
+        state: "$state",
       }
     });
 
@@ -264,7 +268,9 @@ export const getListing = async (req: Request, res: Response) => {
             $addFields: {
               images: "$images.image",
               categories: "$categories.name",
-              user: { $arrayElemAt: ["$user", 0] }  // Convert user array to single object
+              user: { $arrayElemAt: ["$user", 0] },  // Convert user array to single object
+              city: "$city",
+              state: "$state"
             }
           },
           {
@@ -289,12 +295,44 @@ export const createListing = async (req: Request, res: Response) => {
     // Listing, categories [string], images [string]
     const { categories, images, attributes, ...listingData} = req.body;
     console.log(categories)
+
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user?.address) {
+      return res.status(400).json({
+        message: "You must add your address before creating a listing",
+      });
+    }
+
     // We don't send the userID from the form data, but we get it from protected route
     listingData.userID = String(req.user?._id);
     listingData.attributes = attributes ?? {};
     const listingInput = ListingInputSchema.parse(listingData);
 
-    const listing = new Listing(listingInput);
+    // geocode address → coordinates
+    const coords = await geocodeAddress(user.address);
+
+    if (!coords) {
+      return res.status(400).json({
+        message: "Invalid user address. Please update your profile.",
+      });
+    }
+
+    // Add location/city/state
+    const listing = new Listing({
+      ...listingInput,
+      location: {
+        type: "Point",
+        coordinates: [coords.lon, coords.lat],
+      },
+      city: coords.city || "Unknown",
+      state: coords.state || "",
+    });
 
     await listing.save(); 
 
@@ -402,13 +440,45 @@ export const getFavorite = async (req: Request, res: Response) => {
 
 export const searchListings = async (req: Request, res: Response) => {
   try {
+    console.log("FULL URL:", req.originalUrl);
+    console.log("searchListings: req.query: ", req.query)
     const q = (req.query.q as string)?.trim();
     if (!q) return res.status(200).json({ listings: [] });
 
     const userID = req.user?._id;
 
-    const pipeline: any[] = [
-      // Text search on title first
+    const useLocation = req.query.useLocation === "true";
+
+    // Create empty pipeline
+    const pipeline: any[] = [];
+
+    // $geoNear must be the first stage in aggregation if location exists
+    if (useLocation) {
+      const user = await User.findById(userID);
+      if (!user?.location?.coordinates) {
+        return res.status(400).json({
+          message: "Please set your address in profile to use location search",
+        });
+      }
+      console.log("searchListings: found user's location: ", user.location)
+      const [lon, lat] = user.location.coordinates;
+
+      pipeline.push({
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [lon, lat],
+          },
+          distanceField: "distance",
+          spherical: true,
+        },
+      });
+    }
+
+    // Continue with the rest of the pipelline
+    pipeline.push(
+      // Text search on title first 
+      // I think we can remove this as we  have another match for title further down
       { $match: { title: { $regex: q, $options: "i" } } },
 
       // Join category links
@@ -435,7 +505,7 @@ export const searchListings = async (req: Request, res: Response) => {
           ]
         }
       },
-    ];
+    );
 
     // Favorites if logged in
     if (userID) {
@@ -462,7 +532,11 @@ export const searchListings = async (req: Request, res: Response) => {
     });
 
     pipeline.push({ $project: { categoryLinks: 0, favorites: 0, categoriesData: 0 } });
-    pipeline.push({ $sort: { createdAt: -1 } });
+    if (useLocation) {
+      pipeline.push({ $sort: { distance: 1 } }); // closest first
+    } else {
+      pipeline.push({ $sort: { createdAt: -1 } }); // newest first
+    }
     pipeline.push({ $limit: 50 });
 
     const listings = await Listing.aggregate(pipeline);

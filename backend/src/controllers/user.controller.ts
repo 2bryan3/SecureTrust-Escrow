@@ -9,19 +9,20 @@ import { ListingFavorites } from "../models/listingFavorite.model";
 //import Message from "../models/messages.model.js";
 //import Conversation from "../models/conversations.model.js";
 import { ListingReport } from "../models/listingReport.model";
+import { geocodeAddress } from "../utils/geocodeAddress";
 
 
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const userId = req.user?._id;
-
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     // Validate input using Zod
+    console.log("updateUser: req.body: ", req.body)
     const updateData = UserUpdateSchema.parse(req.body);
-
+    console.log("updateUser: updateData: ", updateData)
     // Check for unique username/email if changed
     // if (updateData.username) {
     //   const existingUsername = await User.findOne({ username: updateData.username, _id: { $ne: userId } });
@@ -41,6 +42,24 @@ export const updateUser = async (req: Request, res: Response) => {
     if (updateData.password) {
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(updateData.password, salt);
+    }
+
+    console.log("updateUser: updateData.address: ", updateData.address)
+    // Set address, location, city, and state
+    if (updateData.address) {
+      const geo = await geocodeAddress(updateData.address);
+
+      if (!geo) {
+        return res.status(400).json({ message: "Invalid address" });
+      }
+      console.log("updateUser: updating location")
+      updateData.location = {
+        type: "Point",
+        coordinates: [geo.lon, geo.lat],
+      };
+
+      updateData.city = geo.city;
+      updateData.state = geo.state;
     }
 
     // Update the user
@@ -111,59 +130,3 @@ export const banUser = async (req: Request, res: Response) => {
       res.status(500).json({message: error.message});
     }
 }
-
-export const getAllUsers = async (req: Request, res: Response) => {
-  try {
-    const users = await User.find()
-      .select("firstName lastName username email role createdAt status")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const result = await Promise.all(
-      users.map(async (u) => {
-        const listingCount = await Listing.countDocuments({ userID: u._id });
-        return { ...u, status: u.status ?? "active", listingCount };
-      })
-    );
-
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch users" });
-  }
-};
-
-export const updateUserStatus = async (req: Request, res: Response) => {
-  const { status } = req.body;
-  if (!["active", "suspended"].includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
-  }
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).select("firstName lastName email role status");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to update status" });
-  }
-};
-
-export const updateUserRole = async (req: Request, res: Response) => {
-  const { role } = req.body;
-  if (!["user", "mediator", "admin"].includes(role)) {
-    return res.status(400).json({ message: "Invalid role" });
-  }
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { role },
-      { new: true }
-    ).select("firstName lastName email role status");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to update role" });
-  }
-};
