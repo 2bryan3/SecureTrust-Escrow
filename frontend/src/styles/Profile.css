@@ -219,7 +219,7 @@
 
 .profile-stats {
   display: grid;
-  grid-template-columns: repeat(5, auto);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
   margin-bottom: 2rem;
   width: 100%;
@@ -228,11 +228,42 @@
 .profile-stat-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.85rem 1.25rem;
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.35rem;
+  transition: border-color 0.2s, transform 0.2s;
+  align-items: center;
+  text-align: center;
+}
+
+/* Nav/link cards */
+.profile-stat-card--link {
+  cursor: pointer;
+  border-style: dashed;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+.profile-stat-card--link:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.profile-stat-card--link .profile-stat-label {
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.profile-stat-card-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* Alert state — has open cases */
+.profile-stat-value--alert {
+  color: #fbbf24;
 }
 
 .profile-stat-value {
@@ -336,4 +367,10 @@
 .profile-dispute-status--under-review {
   background: rgba(59, 130, 246, 0.15);
   color: var(--accent);
+}
+
+.profile-stat-card--link:hover .profile-stat-label,
+.profile-stat-card--link:hover svg {
+  color: var(--text);
+  stroke: var(--text);
 }

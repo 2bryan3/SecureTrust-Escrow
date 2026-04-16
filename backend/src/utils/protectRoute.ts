@@ -3,6 +3,7 @@ import {User} from "../models/user.model";
 import {Request, Response, NextFunction} from "express";
 
 const protectRoute = async (req: Request, res: Response, next: NextFunction) => {
+    console.log("protectedRoute hit on path:", req.path, req.originalUrl);
     const token = req.cookies.jwt;
 
     if (!token) {

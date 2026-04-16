@@ -11,7 +11,8 @@ const UserSchema = new mongoose.Schema(
     role: { type: String, enum: ["user", "mediator", "admin"], default: "user" },
     isBanned:   { type: Boolean, default: false },
     avatar:     { type: String, default: "..." },
-    funds:      { type: Number, default: 0 }, 
+    funds:      { type: Number, default: 0 },
+    status:      { type: String, enum: ["active", "suspended"], default: "active" },
   },
   { timestamps: true, versionKey: false }
 );
