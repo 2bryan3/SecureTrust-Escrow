@@ -22,7 +22,7 @@
 .vl-topbar {
   max-width: 1200px;  /* match layout width */
   margin: 0 auto;
-  padding: 1.5rem 2rem 0.5rem;
+  padding: 2.5rem 2rem 0.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
