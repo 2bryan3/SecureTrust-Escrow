@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { NavBar } from "../components/NavBar";
 import { HeroBanner } from "../components/HeroBanner";
-import { StatsStrip } from "../components/StatStrip";
+import { HowItWorks } from "../components/HowItWorks";
 import { CategoryChips } from "../components/Categories";
 import { ListingGrid } from "../components/ListingGrid";
 import { Footer } from "../components/Footer";
@@ -42,7 +42,7 @@ export const HomePage = () => {
     <NavBar />
     <div className="home-content">
       <HeroBanner />
-      <StatsStrip />
+      <HowItWorks />
       <CategoryChips
         categories={["Electronics", "Fashion", "Gaming", "Vehicles", "Furniture", "Books", "Services"]}
         onSelect={(cat) => setSelectedCategory(cat)}

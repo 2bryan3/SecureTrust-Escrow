@@ -25,9 +25,7 @@ const FALLBACK_EMOJIS = ["📷", "📱", "🎧", "👟"];
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   title = "Discover & Buy",
   titleAccent = "Trusted Products",
-  subtitle = "The safest marketplace for buying and selling electronics, fashion, and collectibles — protected by smart escrow at every step.",
-  ctaLabel = "Shop Now →",
-  onCtaClick,
+  subtitle = "The safest marketplace for buying and selling anything — protected by escrow at every step.",
   floats = defaultFloats,
 }) => {
   const floatClasses = ["hero-float--a", "hero-float--b", "hero-float--c", "hero-float--d"];
@@ -45,9 +43,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             <span>{titleAccent}</span>
           </h1>
           <p>{subtitle}</p>
-          <button className="primary-btn" onClick={onCtaClick}>
-            {ctaLabel}
-          </button>
         </div>
 
         <div className="hero-visuals">

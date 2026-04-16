@@ -1,0 +1,68 @@
+/* src/styles/HowItWorks.css */
+.hiw-strip {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: rgba(14, 20, 32, 0.6);
+  backdrop-filter: blur(10px);
+  animation: fadeUp 0.8s ease 0.2s both;
+}
+
+.hiw-step {
+  flex: 1;
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hiw-icon {
+  width: 36px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  margin-bottom: 0.6rem;
+  transition: background 0.2s ease;
+}
+
+.hiw-step:hover .hiw-icon {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hiw-num {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.hiw-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.hiw-desc {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  max-width: 160px;
+}
+
+.hiw-arrow {
+  font-size: 1.75rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  padding-bottom: 0.5rem;
+  user-select: none;
+}
