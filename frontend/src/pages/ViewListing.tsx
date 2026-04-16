@@ -6,60 +6,17 @@ import type { TransactionData } from "../types/transaction.types";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ListingDashboardPopup } from "../components/ListingDashboardPopup";
 import { EditListingPopup } from "../components/EditListingPopup";
+import { NavBar } from "../components/NavBar";
 import { useAuth } from "../context/AuthContext";
-
-// ── Build a mock transaction for demo / dev purposes ─────────────────────────
-// TODO: Replace with real API call (GET /api/transactions?listingId=...) once
-// the buy flow is wired up end-to-end.
-const buildMockTransaction = (
-  listing: ListingData,
-  currentUserId: string,
-  role: "buyer" | "seller" = "buyer"
-): TransactionData => ({
-  _id: "mock_tx_001",
-  buyerId:  role === "buyer" ? currentUserId : "mock_other_user",
-  sellerId: role === "seller" ? currentUserId : "mock_other_user",
-  listingId: {
-    _id:    listing._id,
-    title:  listing.title,
-    images: listing.images,
-    price:  listing.price,
-  },
-  amount:       listing.price,
-  escrowAmount: 0,
-  currency:     "USD",
-  status:       "milestone1",
-  initiatedBy:  "buyer",
-  terms:        null,
-  cancelledAt:  null,
-  cancelledBy:  null,
-  createdAt:    listing.createdAt,
-  updatedAt:    listing.updatedAt,
-  milestone1: {
-    packageImageUrl:     null,
-    trackingNumber:      null,
-    trackingCarrier:     null,
-    sellerSubmittedAt:   null,
-    buyerFundsDeposited: false,
-    buyerDepositedAt:    null,
-    depositTxRef:        null,
-    status:              "pending",
-  },
-  milestone2: {
-    buyerConfirmed:   false,
-    buyerConfirmedAt: null,
-    buyerConfirmNote: null,
-    fundsReleasedAt:  null,
-    releaseTxRef:     null,
-    status:           "locked",
-  },
-});
+import { useConversationContext } from "../context/ConversationContext";
+import { api } from "../api/api";
+import type { Conversation } from "../context/ConversationContext";
 
 export const ViewListing: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+  const { conversations, setConversations, setPanelOpen, setActiveConversationId } = useConversationContext();
 
   const [loading, setLoading]               = useState(true);
   const [data, setData]                     = useState<ListingData>();
@@ -96,37 +53,66 @@ export const ViewListing: React.FC = () => {
     setShowEdit(false);
   };
 
-  // Opens the dashboard popup.
-  // TODO: swap buildMockTransaction for a real fetch once buy flow is ready:
-  //   const res = await fetch(`/api/transactions?listingId=${data._id}`, { credentials: "include" });
-  //   const { transaction } = await res.json();
-  //   setTransaction(transaction);
-  const handleManageSale = () => {
+  // Fetch existing transaction for this listing (seller or buyer checking status)
+  const handleManageSale = async () => {
     if (!data || !user) return;
-    const role = isOwner ? "seller" : "buyer";
-    setTransaction(buildMockTransaction(data, user._id, role));
-    setShowDashboard(true);
+    try {
+      const res = await fetch(`/api/transactions/user/${user._id}`, { credentials: "include" });
+      const json = await res.json();
+      const txs: TransactionData[] = json.transactions ?? [];
+      const listingId = typeof data._id === "string" ? data._id : (data._id as any)._id;
+      const existing = txs.find((tx) => {
+        const txListingId = typeof tx.listingId === "object" ? tx.listingId._id : tx.listingId;
+        return txListingId === listingId && tx.status !== "cancelled" && tx.status !== "completed";
+      });
+      if (existing) {
+        setTransaction(existing);
+        setShowDashboard(true);
+      } else {
+        alert("No active transaction found for this listing.");
+      }
+    } catch {
+      alert("Failed to load transaction.");
+    }
   };
 
-  // TODO: wire up real buy flow — create transaction via POST /api/transactions
+  // Create a new transaction and open the dashboard
   const handleBuyNow = async () => {
     if (!data || !user) return;
-    alert("Buy now functionality coming soon!");
-    // const res = await fetch("/api/transactions", {
-    //   method: "POST",
-    //   credentials: "include",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     listingId: data._id,
-    //     buyerId: user._id,
-    //     sellerId: data.user._id,
-    //     amount: data.price,
-    //     initiatedBy: "buyer",
-    //   }),
-    // });
-    // const { transaction } = await res.json();
-    // setTransaction(transaction);
-    // setShowDashboard(true);
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId: data._id,
+          buyerId: user._id,
+          sellerId: data.user._id,
+          amount: data.price,
+          initiatedBy: "buyer",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to create transaction.");
+      setTransaction(json.transaction as TransactionData);
+      setShowDashboard(true);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleMessageSeller = async () => {
+    if (!data || !user) return;
+    const conversation = await api<Conversation>("/api/conversations", {
+      method: "POST",
+      body: { participantId: data.user._id },
+    });
+    // Add to list if not already present
+    setConversations(prev =>
+      prev.some(c => c._id === conversation._id) ? prev : [conversation, ...prev]
+    );
+    setActiveConversationId(conversation._id);
+    setPanelOpen(true);
   };
 
   if (loading) return <LoadingSpinner size="small" />;
@@ -137,6 +123,7 @@ export const ViewListing: React.FC = () => {
 
   return (
     <div className="vl-page-bg">
+      <NavBar />
 
       {/* Top bar */}
       <div className="vl-topbar">
@@ -251,6 +238,11 @@ export const ViewListing: React.FC = () => {
                 Buy Now
               </button>
             )}
+            {!isOwner && user && (
+              <button className="vl-btn-secondary" onClick={handleMessageSeller}>
+                Message Seller
+              </button>
+            )}
             <button className="vl-btn-secondary" onClick={handleManageSale}>
               Manage Sale
             </button>
@@ -268,7 +260,6 @@ export const ViewListing: React.FC = () => {
           sellerID={data.user._id}
           onClose={() => setShowDashboard(false)}
           onTransactionUpdate={(updated) => setTransaction(updated)}
-          mockMode={true}
         />
       )}
 

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import "../styles/MediatorPage.css";
 import axios from "axios";
+import { NavBar } from "../components/NavBar";
 
 type DisputeStatus = "Pending" | "Under Review" | "Resolved" | "Refunded" | "Dismissed";
 
@@ -105,6 +106,7 @@ export const MediatorPage: React.FC = () => {
 
   return (
     <div className="mediator-page">
+      <NavBar />
 
       <div className="mediator-header">
         <div>
