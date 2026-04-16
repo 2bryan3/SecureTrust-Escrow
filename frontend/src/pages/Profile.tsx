@@ -8,7 +8,6 @@ import { Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import type { ListingData } from "../types/listing.types";
-import { Settings, Scale } from "lucide-react";
 
 type Tab = "info" | "listings" | "favorites" | "cases" | "overview";
 
@@ -33,6 +32,8 @@ export default function Profile() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [hidePassword, setHidePassword] = useState(true);
+  const [address, setAddress] = useState("");
+
   const [infoSaving, setInfoSaving] = useState(false);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
@@ -63,6 +64,7 @@ export default function Profile() {
     setFirstName(user.firstName || "");
     setLastName(user.lastName || "");
     setUsername(user.username || "");
+    setAddress(user.address || "");
   }, [user]);
 
   useEffect(() => {
@@ -121,6 +123,7 @@ export default function Profile() {
       setInfoMsg(null);
       const updateData: any = { firstName, lastName };
       if (password.trim() !== "") updateData.password = password;
+      if (address.trim() !== "") updateData.address = address;
       await axios.put("/api/users/update", updateData, { withCredentials: true });
       await refreshUser();
       setPassword("");
@@ -171,9 +174,7 @@ export default function Profile() {
           {isPrivileged ? (
             <>
               <div className="profile-stat-card">
-                <span className={`profile-stat-value ${disputesCount > 0 ? "profile-stat-value--alert" : ""}`}>
-                  {statsLoading ? "—" : disputesCount}
-                </span>
+                <span className="profile-stat-value">{statsLoading ? "—" : disputesCount}</span>
                 <span className="profile-stat-label">Active Cases</span>
               </div>
               <div className="profile-stat-card">
@@ -187,13 +188,13 @@ export default function Profile() {
                 <span className="profile-stat-label">Member Since</span>
               </div>
               {isAdmin && (
-                <div className="profile-stat-card profile-stat-card--link" onClick={() => navigate("/admin")}>
-                  <Settings size={22} strokeWidth={1.75} color="var(--muted)" />
+                <div className="profile-stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/admin")}>
+                  <span className="profile-stat-value">→</span>
                   <span className="profile-stat-label">Admin Dashboard</span>
                 </div>
               )}
-              <div className="profile-stat-card profile-stat-card--link" onClick={() => navigate("/mediator")}>
-                <Scale size={22} strokeWidth={1.75} color="var(--muted)" />
+              <div className="profile-stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/mediator")}>
+                <span className="profile-stat-value">→</span>
                 <span className="profile-stat-label">Mediator Dashboard</span>
               </div>
             </>
@@ -265,6 +266,16 @@ export default function Profile() {
                       {hidePassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                </div>
+              </div>
+              <div className="profile-field-row">
+                <div className="profile-field" style={{ minWidth: "300px" }}>
+                  <label>Address</label>
+                  <input
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
+                    placeholder="Street address"
+                  />
                 </div>
               </div>
               {infoMsg && (
