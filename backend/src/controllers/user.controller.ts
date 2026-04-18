@@ -9,7 +9,7 @@ import { ListingFavorites } from "../models/listingFavorite.model";
 //import Message from "../models/messages.model.js";
 //import Conversation from "../models/conversations.model.js";
 import { ListingReport } from "../models/listingReport.model";
-
+import { geocodeAddress } from "../utils/geocodeAddress";
 
 export const updateUser = async (req: Request, res: Response) => {
   try {
@@ -41,6 +41,22 @@ export const updateUser = async (req: Request, res: Response) => {
     if (updateData.password) {
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(updateData.password, salt);
+    }
+
+    // Set address, location, city, and state
+    if (updateData.address) {
+      const geo = await geocodeAddress(updateData.address);
+
+      if (!geo) {
+        return res.status(400).json({ message: "Invalid address" });
+      }
+      updateData.location = {
+        type: "Point",
+        coordinates: [geo.lon, geo.lat],
+      };
+
+      updateData.city = geo.city;
+      updateData.state = geo.state;
     }
 
     // Update the user
