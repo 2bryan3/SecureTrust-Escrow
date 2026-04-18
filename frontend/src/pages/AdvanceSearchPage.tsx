@@ -15,6 +15,7 @@ export const AdvancedSearchPage: React.FC = () => {
   const [minPrice,   setMinPrice]   = useState("");
   const [maxPrice,   setMaxPrice]   = useState("");
   const [attrValues, setAttrValues] = useState<Record<string, string>>({});
+  const [locSearch,   setLocSearch]   = useState(false);
 
   const fields: CategoryField[] = category ? (categoryFields[category] ?? []) : [];
 
@@ -28,6 +29,7 @@ export const AdvancedSearchPage: React.FC = () => {
   };
 
   const handleSearch = () => {
+    console.log("handleSesarch:")
     const params = new URLSearchParams();
     if (keyword)  params.set("q", keyword);
     if (category) params.set("category", category);
@@ -40,6 +42,11 @@ export const AdvancedSearchPage: React.FC = () => {
     );
     if (Object.keys(filledAttrs).length > 0) {
       params.set("attributes", JSON.stringify(filledAttrs));
+    }
+    console.log("handleSearch: locSearch: ", locSearch)
+    if (locSearch) {
+      console.log("handleSearch: setting useLocation to ture")
+      params.set("useLocation", "true");
     }
 
     navigate(`/search?${params.toString()}`);
@@ -125,6 +132,21 @@ export const AdvancedSearchPage: React.FC = () => {
                 onChange={setSortBy}
                 options={sortOptions}
               />
+            </div>
+
+            {/* Location-based Search Toggle */}
+            <div className="adv-field-group">
+              <label className="adv-label">Location Based Search</label>
+              <div className="loc-switch-container">
+                <label className="loc-switch">
+                  <input
+                    type="checkbox"
+                    checked={locSearch}
+                    onChange={(e) => setLocSearch(e.target.checked)}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
             </div>
 
             {/* Dynamic category fields */}

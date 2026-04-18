@@ -33,6 +33,7 @@ export default function Profile() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [hidePassword, setHidePassword] = useState(true);
+  const [address, setAddress] = useState("");
   const [infoSaving, setInfoSaving] = useState(false);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
@@ -63,6 +64,7 @@ export default function Profile() {
     setFirstName(user.firstName || "");
     setLastName(user.lastName || "");
     setUsername(user.username || "");
+    setAddress(user.address || "");
   }, [user]);
 
   useEffect(() => {
@@ -121,6 +123,7 @@ export default function Profile() {
       setInfoMsg(null);
       const updateData: any = { firstName, lastName };
       if (password.trim() !== "") updateData.password = password;
+      if (address.trim() !== "") updateData.address = address;
       await axios.put("/api/users/update", updateData, { withCredentials: true });
       await refreshUser();
       setPassword("");
@@ -265,6 +268,16 @@ export default function Profile() {
                       {hidePassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                </div>
+              </div>
+              <div className="profile-field-row">
+                <div className="profile-field" style={{ minWidth: "300px" }}>
+                  <label>Address</label>
+                  <input
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
+                    placeholder="Street address"
+                  />
                 </div>
               </div>
               {infoMsg && (

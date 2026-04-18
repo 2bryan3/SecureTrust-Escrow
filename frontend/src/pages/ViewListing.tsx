@@ -208,6 +208,13 @@ export const ViewListing: React.FC = () => {
             </span>
           </p>
 
+          <p className="vl-status-label">
+            Location:{" "}
+            <span className="vl-location">
+              {data.city}{data.city && data.state ? ", " : "Unknown"}{data.state}
+            </span>
+          </p>
+
           <div className="vl-divider" />
 
           {/* Description */}
