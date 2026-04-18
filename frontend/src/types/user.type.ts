@@ -4,6 +4,9 @@ export type User = {
   lastName: string;
   username: string;
   email: string;
+  address?: string;
+  city?: string;
+  state?: string;  
   avatar: string;
   role: "user" | "mediator" | "admin";
   isBanned?: boolean;
