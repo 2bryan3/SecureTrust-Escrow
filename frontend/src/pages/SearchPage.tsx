@@ -15,6 +15,7 @@ export const SearchPage: React.FC = () => {
   const minPrice   = searchParams.get("minPrice") || "";
   const maxPrice   = searchParams.get("maxPrice") || "";
   const attributes = searchParams.get("attributes") || "";
+  const useLocation = searchParams.get("useLocation") || "";
 
   const [listings, setListings] = useState<ListingData[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -38,6 +39,7 @@ export const SearchPage: React.FC = () => {
       if (minPrice)   params.set("minPrice", minPrice);
       if (maxPrice)   params.set("maxPrice", maxPrice);
       if (attributes) params.set("attributes", attributes);
+      if (useLocation) params.set("useLocation", useLocation);
 
       fetch(`/api/listings?${params.toString()}`, { credentials: "include" })
         .then(r => r.json())
@@ -45,12 +47,13 @@ export const SearchPage: React.FC = () => {
         .catch(() => setLoading(false));
     } else {
       // Simple keyword search
-      fetch(`/api/listings/search?q=${encodeURIComponent(q)}`, { credentials: "include" })
+      const url = `/api/listings/search?q=${encodeURIComponent(q)}${useLocation === "true" ? "&useLocation=true" : ""}`;
+      fetch(url, { credentials: "include" })
         .then(r => r.json())
         .then(data => { setListings(data.listings ?? []); setLoading(false); })
         .catch(() => setLoading(false));
     }
-  }, [q, category, sortBy, minPrice, maxPrice, attributes]);
+  }, [q, category,  sortBy, minPrice, maxPrice, attributes, useLocation]);
 
   // Build a readable summary of active filters
   const filterSummary: string[] = [];
