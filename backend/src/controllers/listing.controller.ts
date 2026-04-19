@@ -38,6 +38,8 @@ export const getListings = async (req: Request, res: Response) => {
 
     const userID = req.user?._id;
 
+    const useLocation = req.query.useLocation === "true";
+
     let categoryID: mongoose.Types.ObjectId | null = null;
     if (categoryName) {
       const category = await Category.findOne({ name: categoryName }).select("_id");
@@ -46,6 +48,28 @@ export const getListings = async (req: Request, res: Response) => {
     }
 
     const pipeline: any[] = [];
+
+    // $geoNear must be the first stage in aggregation if location exists
+    if (useLocation) {
+      const user = await User.findById(userID);
+      if (!user?.location?.coordinates) {
+        return res.status(400).json({
+          message: "Please set your address in profile to use location search",
+        });
+      }
+      const [lon, lat] = user.location.coordinates;
+
+      pipeline.push({
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [lon, lat],
+          },
+          distanceField: "distance",
+          spherical: true,
+        },
+      });
+    }
 
     pipeline.push({
       $lookup: {
@@ -126,7 +150,11 @@ export const getListings = async (req: Request, res: Response) => {
     });
 
     pipeline.push({ $project: { categoryLinks: 0, favorites: 0, categoriesData: 0 } });
-    pipeline.push({ $sort: sortAttributeMap[sortBy] ?? { createdAt: -1 } });
+    if (useLocation) {
+      pipeline.push({ $sort: { distance: 1 } }); // closest first
+    } else {
+      pipeline.push({ $sort: sortAttributeMap[sortBy] ?? { createdAt: -1 } });
+    }
 
     const listings = await Listing.aggregate(pipeline);
     return res.status(200).json({ listings });
@@ -460,7 +488,7 @@ export const searchListings = async (req: Request, res: Response) => {
           message: "Please set your address in profile to use location search",
         });
       }
-      console.log("searchListings: found user's location: ", user.location)
+      //console.log("searchListings: found user's location: ", user.location)
       const [lon, lat] = user.location.coordinates;
 
       pipeline.push({
