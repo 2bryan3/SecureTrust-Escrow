@@ -184,6 +184,11 @@
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
+.milestone-card .status {
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+}
+
 /* ── Funds row ── */
 .funds-row {
   display: flex;

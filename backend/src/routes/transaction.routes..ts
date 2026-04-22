@@ -4,6 +4,10 @@ import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
 import { Types } from "mongoose";
 import { stripe } from "../utils/stripe";
+import { Listing } from "../models/listing.model";
+import { Conversation } from "../models/conversation.model";
+import { Message } from "../models/message.model";
+import { getIO, getSocketId } from "../utils/socketManager";
 
 const router = Router();
 
@@ -190,6 +194,7 @@ router.patch("/:id/milestone1/buyer", async (req: Request, res: Response) => {
     }
 
     await tx.save();
+    await Listing.findByIdAndUpdate(tx.listingId, { isLocked: true });
     return res.json({ transaction: tx });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -242,6 +247,47 @@ router.patch("/:id/milestone2/confirm", async (req: Request, res: Response) => {
     await User.findByIdAndUpdate(tx.sellerId, { $inc: { funds: tx.amount } });
 
     await tx.save();
+    await Listing.findByIdAndUpdate(tx.listingId, { isSold: true });
+    // Auto-message seller on completion
+    const listing = await Listing.findById(tx.listingId).select("title");
+    const listingTitle = listing ? listing.title : "your listing";
+
+    let conversation = await Conversation.findOne({
+      participants: { $all: [tx.buyerId, tx.sellerId], $size: 2 },
+    });
+    if (!conversation) {
+      conversation = await Conversation.create({
+        participants: [tx.buyerId, tx.sellerId],
+      });
+    }
+
+    const messageText = `🎉 Your listing "${listingTitle}" has been sold! $${tx.amount.toLocaleString()} has been added to your balance.`;
+
+    const message = await Message.create({
+      conversationId: conversation._id,
+      sender: tx.buyerId,
+      text: messageText,
+    });
+
+    await Conversation.findByIdAndUpdate(conversation._id, { lastMessage: message._id });
+
+    const io = getIO();
+    if (io) {
+      const payload = {
+        conversationId: conversation._id.toString(),
+        message: {
+          _id: message._id.toString(),
+          text: message.text,
+          sender: tx.buyerId.toString(),
+          createdAt: message.createdAt,
+          conversationId: conversation._id.toString(),
+        },
+      };
+      [tx.buyerId, tx.sellerId].forEach((id) => {
+        const socketId = getSocketId(id.toString());
+        if (socketId) io.to(socketId).emit("newMessage", payload);
+      });
+    }
     return res.json({ transaction: tx, message: "Funds captured and released to seller." });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -279,6 +325,7 @@ router.patch("/:id/cancel", async (req: Request, res: Response) => {
     }
 
     await tx.save();
+    await Listing.findByIdAndUpdate(tx.listingId, { isLocked: false });
     return res.json({ transaction: tx, message: "Transaction cancelled." });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

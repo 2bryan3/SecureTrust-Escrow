@@ -1,6 +1,8 @@
 // backend/src/seed.ts
 import "dotenv/config";
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
+import { User } from "./models/user.model";
 import { Category } from "./models/categories.model";
 
 const categories = [
@@ -37,6 +39,22 @@ async function seed() {
   }
 
   console.log("Categories seeded:", categories);
+
+    // Seed system user
+  const systemUser = await User.findOneAndUpdate(
+    { email: "system@securetrust.com" },
+    {
+      firstName: "SecureTrust",
+      lastName: "Bot",
+      username: "securetrust",
+      email: "system@securetrust.com",
+      password: await bcrypt.hash("system-password-not-used", 10),
+      role: "admin",
+    },
+    { upsert: true, new: true }
+  );
+  console.log("System user ID:", systemUser._id.toString());
+
   await mongoose.disconnect();
   process.exit(0);
 }

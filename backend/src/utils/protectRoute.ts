@@ -17,6 +17,7 @@ const protectRoute = async (req: Request, res: Response, next: NextFunction) => 
         const user = await User.findById(decoded.userId).select("-password");
 
         if (!user) return res.status(404).json({ message: "User not found" });
+        if (user.isBanned) return res.status(403).json({ message: "Account banned" });
 		
         console.log("Sucessful authenticated on protect route")
 

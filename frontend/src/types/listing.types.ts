@@ -17,6 +17,7 @@ export interface ListingData {
   images: string[];       // base64 strings from ListingImage docs
   user: ListingUser;   
   isSold: boolean;
+  isLocked: boolean;
   deliveryMethod: "shipping" | "local_pickup";
   createdAt: string;
   updatedAt: string;

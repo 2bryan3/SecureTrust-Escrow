@@ -15,7 +15,7 @@ interface AdminUser {
   role: "user" | "mediator" | "admin";
   createdAt: string;
   listingCount?: number;
-  status: "active" | "suspended";
+  isBanned: boolean;
 }
 
 interface AdminListing {
@@ -156,10 +156,12 @@ export const AdminPage: React.FC = () => {
   const [newRole, setNewRole] = useState<UserRole>("user");
   const [confirmDelete, setConfirmDelete] = useState<AdminListing | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [confirmBan, setConfirmBan] = useState<AdminUser | null>(null);
 
   // Search / filter
   const [userSearch, setUserSearch] = useState("");
   const [listingSearch, setListingSearch] = useState("");
+  const [showBanned, setShowBanned] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -216,12 +218,13 @@ export const AdminPage: React.FC = () => {
 
   // ── Actions ─────────────────────────────────────────────────────────────────
 
-  const handleSuspend = async (user: AdminUser) => {
-    const next = user.status === "active" ? "suspended" : "active";
+  const handleBan = async () => {
+    if (!confirmBan) return;
     try {
-      await api(`/users/${user._id}/status`, { method: "PATCH", body: { status: next } });
-      setUsers(prev => prev.map(u => u._id === user._id ? { ...u, status: next } : u));
-      showToast(`${user.username} ${next === "suspended" ? "suspended" : "restored"}`);
+      await api(`/users/ban/${confirmBan._id}`, { method: "POST" });
+      setUsers(prev => prev.filter(u => u._id !== confirmBan._id));
+      showToast(`${confirmBan.username} has been banned`);
+      setConfirmBan(null);
     } catch {
       showToast("Action failed — try again");
     }
@@ -268,11 +271,13 @@ export const AdminPage: React.FC = () => {
 
   // ── Filtered lists ───────────────────────────────────────────────────────────
 
-  const filteredUsers = users.filter(
-    (u) =>
+  const filteredUsers = users.filter((u) => {
+    if (showBanned ? !u.isBanned : u.isBanned) return false;
+    return (
       u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email.toLowerCase().includes(userSearch.toLowerCase())
-  );
+    );
+  });
 
   const filteredListings = listings.filter(
   (l: any) =>
@@ -361,7 +366,9 @@ export const AdminPage: React.FC = () => {
                     </div>
                     <span className={`role-badge role-badge--${u.role}`}>{u.role}</span>
                     <span className="user-listings">{u.listingCount ?? "—"}</span>
-                    <span className={`status-pill status-pill--${u.status}`}>{u.status}</span>
+                    <span className={`status-pill status-pill--${u.isBanned ? "suspended" : "active"}`}>
+                      {u.isBanned ? "Banned" : "Active"}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -403,12 +410,20 @@ export const AdminPage: React.FC = () => {
           <div className="admin-section">
             <div className="section-header-row">
               <h2 className="section-heading">All Users</h2>
-              <input
-                className="admin-search"
-                placeholder="Search by name or email…"
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-              />
+              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                <button
+                  className={`action-pill ${showBanned ? "action-pill--red" : "action-pill--blue"}`}
+                  onClick={() => setShowBanned(!showBanned)}
+                >
+                  {showBanned ? "Show Active" : "Show Banned"}
+                </button>
+                <input
+                  className="admin-search"
+                  placeholder="Search by name or email…"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                />
+              </div>
             </div>
             {loading ? (
               <div className="admin-loading">Loading users…</div>
@@ -433,7 +448,9 @@ export const AdminPage: React.FC = () => {
                     <span className={`role-badge role-badge--${u.role}`}>{u.role}</span>
                     <span className="user-joined">{fmt(u.createdAt)}</span>
                     <span className="user-listings">{u.listingCount ?? "—"}</span>
-                    <span className={`status-pill status-pill--${u.status}`}>{u.status}</span>
+                    <span className={`status-pill ${u.isBanned ? "status-pill--suspended" : "status-pill--active"}`}>
+                      {u.isBanned ? "Banned" : "Active"}
+                    </span>
                     <div className="user-actions">
                       <button
                         className="action-pill action-pill--blue"
@@ -441,12 +458,11 @@ export const AdminPage: React.FC = () => {
                       >
                         Role
                       </button>
-                      <button
-                        className={`action-pill ${u.status === "active" ? "action-pill--red" : "action-pill--green"}`}
-                        onClick={() => handleSuspend(u)}
-                      >
-                        {u.status === "active" ? "Suspend" : "Restore"}
-                      </button>
+                      {!u.isBanned && (
+                        <button className="action-pill action-pill--red" onClick={() => setConfirmBan(u)}>
+                          Ban
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -579,6 +595,27 @@ export const AdminPage: React.FC = () => {
               <button className="confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="confirm-submit confirm-submit--danger" onClick={handleDeleteListing}>
                 Remove Listing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Ban Confirm Modal ── */}
+      {confirmBan && (
+        <div className="admin-overlay" onClick={() => setConfirmBan(null)}>
+          <div className="admin-modal admin-modal--sm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Ban User</h3>
+              <button className="close-btn" onClick={() => setConfirmBan(null)}>×</button>
+            </div>
+            <p className="modal-desc">
+              Are you sure you want to ban <strong>{confirmBan.firstName} {confirmBan.lastName}</strong>?
+              All their listings will be deleted and they will no longer be able to access the platform.
+            </p>
+            <div className="modal-actions">
+              <button className="confirm-cancel" onClick={() => setConfirmBan(null)}>Cancel</button>
+              <button className="confirm-submit confirm-submit--danger" onClick={handleBan}>
+                Ban User
               </button>
             </div>
           </div>

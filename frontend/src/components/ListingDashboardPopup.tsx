@@ -517,7 +517,7 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
               {m1Complete && (
                 <div
                   className="milestone-card completed"
-                  style={{ cursor: "pointer", marginBottom: "1rem" }}
+                  style={{ cursor: "pointer", marginBottom: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}
                   onClick={() => setViewingMilestone(1)}
                 >
                   <span>✓ Milestone 1 Complete · {milestone1.trackingCarrier} · {milestone1.trackingNumber}</span>

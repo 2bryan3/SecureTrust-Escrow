@@ -48,6 +48,32 @@ export const ViewListing: React.FC = () => {
     fetchListing();
   }, [id]);
 
+  useEffect(() => {
+    if (!id || !user || !data) return;
+    const fetchTransaction = async () => {
+      try {
+        const res = await fetch(`/api/transactions/user/${user._id}`, { credentials: "include" });
+        const json = await res.json();
+        const txs: TransactionData[] = json.transactions ?? [];
+        const listingId = typeof data._id === "string" ? data._id : (data._id as any)._id;
+        const existing = txs.find((tx) => {
+        const txListingId = typeof tx.listingId === "object" ? tx.listingId._id : tx.listingId;
+        const txSellerId = typeof tx.sellerId === "object" ? (tx.sellerId as any)._id : tx.sellerId;
+        return (
+          txListingId === listingId &&
+          tx.status !== "cancelled" &&
+          tx.status !== "completed" &&
+          (tx.buyerId === user._id || txSellerId === user._id)
+        );
+      });
+        if (existing) setTransaction(existing);
+      } catch {
+        // silently fail, no active transaction
+      }
+    };
+    fetchTransaction();
+  }, [data, user]);
+
   const handleEditSuccess = (updatedData: ListingData) => {
     setData(updatedData);
     setShowEdit(false);
@@ -233,21 +259,27 @@ export const ViewListing: React.FC = () => {
 
           {/* Actions */}
           <div className="vl-actions">
-            {!isOwner && !data.isSold && (
+            {!isOwner && !data.isSold && !data.isLocked && !transaction && (
               <button className="vl-btn-primary" onClick={handleBuyNow}>
                 Buy Now
               </button>
             )}
+            {!isOwner && !data.isSold && data.isLocked && !transaction && (
+              <button className="vl-btn-warning" disabled>
+                Transaction in Progress
+              </button>
+            )}
+            {transaction && (
+              <button className="vl-btn-primary" onClick={handleManageSale}>
+                Manage Sale
+              </button>
+            )}
             {!isOwner && user && (
-              <button className="vl-btn-secondary" onClick={handleMessageSeller}>
+              <button className="vl-btn-primary" onClick={handleMessageSeller}>
                 Message Seller
               </button>
             )}
-            <button className="vl-btn-secondary" onClick={handleManageSale}>
-              Manage Sale
-            </button>
           </div>
-
         </div>
       </div>
 
