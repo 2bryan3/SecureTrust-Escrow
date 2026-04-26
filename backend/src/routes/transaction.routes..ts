@@ -252,20 +252,30 @@ router.patch("/:id/milestone2/confirm", async (req: Request, res: Response) => {
     const listing = await Listing.findById(tx.listingId).select("title");
     const listingTitle = listing ? listing.title : "your listing";
 
+    const systemUserId = process.env.SYSTEM_USER_ID;
+    console.log("SYSTEM_USER_ID from env:", systemUserId);
+    if (!systemUserId) { throw new Error("SYSTEM_USER_ID not set in environment variables."); }
+
     let conversation = await Conversation.findOne({
-      participants: { $all: [tx.buyerId, tx.sellerId], $size: 2 },
+      participants: { $all: [systemUserId, tx.sellerId], $size: 2 },
     });
     if (!conversation) {
       conversation = await Conversation.create({
-        participants: [tx.buyerId, tx.sellerId],
+        participants: [systemUserId, tx.sellerId],
+      });
+    } else {
+      await Conversation.findByIdAndUpdate(conversation._id, { $pull: { hiddenBy: tx.sellerId } 
       });
     }
+
+    conversation = await Conversation.findById(conversation._id).populate("participants", "firstName lastName avatar");
+    if (!conversation) {throw new Error("Conversation not found after creation."); }
 
     const messageText = `🎉 Your listing "${listingTitle}" has been sold! $${tx.amount.toLocaleString()} has been added to your balance.`;
 
     const message = await Message.create({
       conversationId: conversation._id,
-      sender: tx.buyerId,
+      sender: systemUserId,
       text: messageText,
     });
 
@@ -278,12 +288,12 @@ router.patch("/:id/milestone2/confirm", async (req: Request, res: Response) => {
         message: {
           _id: message._id.toString(),
           text: message.text,
-          sender: tx.buyerId.toString(),
+          sender: systemUserId,
           createdAt: message.createdAt,
           conversationId: conversation._id.toString(),
         },
       };
-      [tx.buyerId, tx.sellerId].forEach((id) => {
+      [systemUserId, tx.sellerId].forEach((id) => {
         const socketId = getSocketId(id.toString());
         if (socketId) io.to(socketId).emit("newMessage", payload);
       });

@@ -12,6 +12,8 @@ const UserSchema = new mongoose.Schema(
     isBanned:   { type: Boolean, default: false },
     avatar:     { type: String, default: "..." },
     funds:      { type: Number, default: 0 },
+    rating:     { type: Number, default: 0 },
+    totalRatings: { type: Number, default: 0 },
     address:    { type: String },
     location:   {
       type: {

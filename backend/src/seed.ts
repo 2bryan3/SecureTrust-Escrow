@@ -50,6 +50,7 @@ async function seed() {
       email: "system@securetrust.com",
       password: await bcrypt.hash("system-password-not-used", 10),
       role: "admin",
+      $unset: { location: 1 },
     },
     { upsert: true, new: true }
   );

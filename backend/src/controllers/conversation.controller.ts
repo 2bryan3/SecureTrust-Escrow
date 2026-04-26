@@ -31,12 +31,10 @@ export const getOrCreateConversation = async (req: Request, res: Response) => {
         });
 
         if (conversation) {
-            // If the conversation was hidden by the user, unhide it
-            if (conversation.hiddenBy?.some((id: any) => id.toString() === userId?.toString())) {
-                await Conversation.findByIdAndUpdate(conversation._id, {
-                    $pull: { hiddenBy: userId },
-                });
-            }
+        // Unhide for both participants when conversation is re-initiated
+        await Conversation.findByIdAndUpdate(conversation._id, {
+            $pull: { hiddenBy: { $in: [userId, participantId] } },
+        });
         } else {
             conversation = await Conversation.create({
                 participants: [userId, participantId],
