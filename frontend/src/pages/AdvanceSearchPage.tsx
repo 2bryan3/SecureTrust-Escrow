@@ -14,6 +14,8 @@ export const AdvancedSearchPage: React.FC = () => {
   const [sortBy,     setSortBy]     = useState("newest");
   const [minPrice,   setMinPrice]   = useState("");
   const [maxPrice,   setMaxPrice]   = useState("");
+  const [city,       setCity]       = useState("");
+  const [state,      setState]      = useState("");
   const [attrValues, setAttrValues] = useState<Record<string, string>>({});
 
   const fields: CategoryField[] = category ? (categoryFields[category] ?? []) : [];
@@ -28,12 +30,15 @@ export const AdvancedSearchPage: React.FC = () => {
   };
 
   const handleSearch = () => {
+    console.log("handleSesarch:")
     const params = new URLSearchParams();
     if (keyword)  params.set("q", keyword);
     if (category) params.set("category", category);
     if (sortBy && sortBy !== "newest") params.set("sortBy", sortBy);
     if (minPrice) params.set("minPrice", minPrice);
     if (maxPrice) params.set("maxPrice", maxPrice);
+    if (city)     params.set("city", city);
+    if (state)    params.set("state", state);
 
     const filledAttrs = Object.fromEntries(
       Object.entries(attrValues).filter(([, v]) => v.trim() !== "")
@@ -55,6 +60,63 @@ export const AdvancedSearchPage: React.FC = () => {
     { label: "Oldest First",        value: "oldest"   },
     { label: "Price: Low to High",  value: "minPrice" },
     { label: "Price: High to Low",  value: "maxPrice" },
+    { label: "Closest to location", value: "closest" }
+  ];
+
+  const stateOptions = [
+    { label: "Any State", value: "" },
+    { label: "Alabama (AL)", value: "AL" },
+    { label: "Alaska (AK)", value: "AK" },
+    { label: "Arizona (AZ)", value: "AZ" },
+    { label: "Arkansas (AR)", value: "AR" },
+    { label: "California (CA)", value: "CA" },
+    { label: "Colorado (CO)", value: "CO" },
+    { label: "Connecticut (CT)", value: "CT" },
+    { label: "Delaware (DE)", value: "DE" },
+    { label: "Florida (FL)", value: "FL" },
+    { label: "Georgia (GA)", value: "GA" },
+    { label: "Hawaii (HI)", value: "HI" },
+    { label: "Idaho (ID)", value: "ID" },
+    { label: "Illinois (IL)", value: "IL" },
+    { label: "Indiana (IN)", value: "IN" },
+    { label: "Iowa (IA)", value: "IA" },
+    { label: "Kansas (KS)", value: "KS" },
+    { label: "Kentucky (KY)", value: "KY" },
+    { label: "Louisiana (LA)", value: "LA" },
+    { label: "Maine (ME)", value: "ME" },
+    { label: "Maryland (MD)", value: "MD" },
+    { label: "Massachusetts (MA)", value: "MA" },
+    { label: "Michigan (MI)", value: "MI" },
+    { label: "Minnesota (MN)", value: "MN" },
+    { label: "Mississippi (MS)", value: "MS" },
+    { label: "Missouri (MO)", value: "MO" },
+    { label: "Montana (MT)", value: "MT" },
+    { label: "Nebraska (NE)", value: "NE" },
+    { label: "Nevada (NV)", value: "NV" },
+    { label: "New Hampshire (NH)", value: "NH" },
+    { label: "New Jersey (NJ)", value: "NJ" },
+    { label: "New Mexico (NM)", value: "NM" },
+    { label: "New York (NY)", value: "NY" },
+    { label: "North Carolina (NC)", value: "NC" },
+    { label: "North Dakota (ND)", value: "ND" },
+    { label: "Ohio (OH)", value: "OH" },
+    { label: "Oklahoma (OK)", value: "OK" },
+    { label: "Oregon (OR)", value: "OR" },
+    { label: "Pennsylvania (PA)", value: "PA" },
+    { label: "Rhode Island (RI)", value: "RI" },
+    { label: "South Carolina (SC)", value: "SC" },
+    { label: "South Dakota (SD)", value: "SD" },
+    { label: "Tennessee (TN)", value: "TN" },
+    { label: "Texas (TX)", value: "TX" },
+    { label: "Utah (UT)", value: "UT" },
+    { label: "Vermont (VT)", value: "VT" },
+    { label: "Virginia (VA)", value: "VA" },
+    { label: "Washington (WA)", value: "WA" },
+    { label: "West Virginia (WV)", value: "WV" },
+    { label: "Wisconsin (WI)", value: "WI" },
+    { label: "Wyoming (WY)", value: "WY" },
+    { label: "District of Columbia (DC)", value: "DC" },
+    { label: "Puerto Rico (PR)", value: "PR" }
   ];
 
   return (
@@ -115,6 +177,31 @@ export const AdvancedSearchPage: React.FC = () => {
                   onChange={e => setMaxPrice(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* City */}
+            <div className="adv-field-group">
+              <label className="adv-label">City</label>
+              <input
+                className="adv-input"
+                type="text"
+                placeholder="Enter city..."
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
+              />
+            </div>
+
+            {/* State */}
+            <div className="adv-field-group">
+              <label className="adv-label">State</label>
+              <CustomSelect
+                value={state}
+                onChange={setState}
+                options={stateOptions}
+                placeholder="Any State"
+                searchable
+              />
             </div>
 
             {/* Sort */}

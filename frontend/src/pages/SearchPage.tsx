@@ -19,7 +19,7 @@ export const SearchPage: React.FC = () => {
   const [listings, setListings] = useState<ListingData[]>([]);
   const [loading, setLoading]   = useState(true);
 
-  const hasAdvancedFilters = category || minPrice || maxPrice || attributes;
+  const hasAdvancedFilters = category || minPrice || maxPrice || attributes || sortBy !== "newest";
 
   useEffect(() => {
     if (!q && !hasAdvancedFilters) {
