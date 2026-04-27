@@ -29,6 +29,7 @@ export const getListings = async (req: Request, res: Response) => {
     // ---- NEW ----
     const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
     const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
+    const streetSearch = (req.query.street as string | undefined) ?? null;
     const citySearch = (req.query.city as string | undefined) ?? null;
     const stateSearch = (req.query.state as string | undefined) ?? null;
     let attributeFilters: Record<string, string> = {};
@@ -53,7 +54,7 @@ export const getListings = async (req: Request, res: Response) => {
     // $geoNear must be the first stage in aggregation if location exists
     if (sortBy === "closest") {
       const user = await User.findById(userID);
-      if (!user?.location?.coordinates) {
+      if (!user?.location?.coordinates || !user?.street || !user?.city || !user?.state) {
         return res.status(400).json({
           message: "Please set your address in profile to use location search",
         });
@@ -83,6 +84,14 @@ export const getListings = async (req: Request, res: Response) => {
 
     if (nameSearch) {
       pipeline.push({ $match: { title: { $regex: nameSearch, $options: "i" } } });
+    }
+
+    if (streetSearch) {
+      pipeline.push({
+        $match: {
+          street: { $regex: streetSearch, $options: "i" }
+        }
+      });
     }
 
     if (citySearch) {
