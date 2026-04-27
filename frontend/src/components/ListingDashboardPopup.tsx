@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "../styles/ListingDashboard.css";
 import axios from "axios";
 import { ToastPortal } from "./ToastPortal";
@@ -20,6 +20,7 @@ interface ListingDashboardPopupProps {
   onTransactionUpdate: (updated: TransactionData) => void;
   /** Pass true when running without a real backend — actions update state locally. */
   mockMode?: boolean;
+  onRated?: () => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -300,7 +301,6 @@ interface M2PanelProps {
 const Milestone2Panel: React.FC<M2PanelProps> = ({
   txId, currentUserId, isBuyer, isSeller, m1, m2, amount, transaction, onUpdate, onToast, mockMode,
 }) => {
-  const [note, setNote]             = useState("");
   const [confirming, setConfirming] = useState(false);
 
   const isLocked   = m2.status === "locked";
@@ -309,7 +309,7 @@ const Milestone2Panel: React.FC<M2PanelProps> = ({
   const handleConfirm = async () => {
     setConfirming(true);
     try {
-      const body = { buyerId: currentUserId, buyerConfirmNote: note || null };
+      const body = { buyerId: currentUserId };
       const updated = mockMode
         ? applyMockAction(transaction, "milestone2/confirm", body)
         : await patchTx(txId, "milestone2/confirm", body);
@@ -361,14 +361,6 @@ const Milestone2Panel: React.FC<M2PanelProps> = ({
                 By confirming, you release <strong>${amount.toLocaleString()}</strong> to the seller.
                 This cannot be undone.
               </p>
-              <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Optional note for the seller</label>
-              <textarea
-                className="escalation-reason"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Everything arrived in great condition!"
-                rows={3}
-              />
               <button className="action-btn release" onClick={handleConfirm} disabled={confirming}>
                 {confirming ? "Processing…" : `✅ Confirm Receipt & Release $${amount.toLocaleString()}`}
               </button>
@@ -383,6 +375,106 @@ const Milestone2Panel: React.FC<M2PanelProps> = ({
   );
 };
 
+// ─── Rating Panel ─────────────────────────────────────────────────────────────
+
+interface RatingPanelProps {
+  transactionId: string;
+  isBuyer: boolean;
+  onToast: (msg: string, type: "success" | "error") => void;
+  onRated?: () => void;
+}
+
+const RatingPanel: React.FC<RatingPanelProps> = ({
+  transactionId, isBuyer, onToast, onRated
+}) => {
+  const [hasRated, setHasRated]   = useState<boolean | null>(null);
+  const [rating, setRating]       = useState(0);
+  const [hover, setHover]         = useState(0);
+  const [note, setNote]           = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/ratings/transaction/${transactionId}/mine`, { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setHasRated(d.hasRated))
+      .catch(() => setHasRated(false));
+  }, [transactionId]);
+
+  const handleSubmit = async () => {
+    if (rating === 0) { onToast("Please select a star rating.", "error"); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/ratings", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId, rating, note: note || null }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setHasRated(true);
+      onToast("Rating submitted!", "success");
+      onRated?.();
+    } catch (e: any) {
+      onToast(e.message, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (hasRated === null) return <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>Loading…</p>;
+
+  if (hasRated) return (
+    <div style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+      ✓ You've already submitted a rating for this transaction.
+    </div>
+  );
+
+  const label = isBuyer ? "Rate the Seller" : "Rate the Buyer";
+
+  return (
+    <div className="actions-section">
+      <h3 style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted)", margin: "0 0 0.75rem" }}>
+        {label}
+      </h3>
+
+      {/* Stars */}
+      <div style={{ display: "flex", gap: "0.35rem", marginBottom: "0.75rem" }}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <button
+            key={star}
+            onClick={() => setRating(star)}
+            onMouseEnter={() => setHover(star)}
+            onMouseLeave={() => setHover(0)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "1.6rem",
+              color: star <= (hover || rating) ? "var(--gold)" : "var(--border)",
+              transition: "color 0.1s",
+              padding: 0,
+            }}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+
+      <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Optional note</label>
+      <textarea
+        className="escalation-reason"
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder={isBuyer ? "Great seller, shipped quickly!" : "Reliable buyer, smooth transaction!"}
+        rows={3}
+      />
+      <button className="action-btn add" onClick={handleSubmit} disabled={submitting || rating === 0}>
+        {submitting ? "Submitting…" : "Submit Rating"}
+      </button>
+    </div>
+  );
+};
+
 // ─── Main popup ───────────────────────────────────────────────────────────────
 
 export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
@@ -393,6 +485,7 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
   onClose,
   onTransactionUpdate,
   mockMode = false,
+  onRated,
 }) => {
   const { _id, milestone1, milestone2, amount, escrowAmount, status } = transaction;
 
@@ -495,7 +588,15 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
           {isComplete && viewingMilestone === 2 ? (
             <div className="dashboard-section">
               <h3>🎉 Transaction Complete</h3>
-              <p style={{ color: "var(--muted)" }}>Funds have been released. Thank you for using SecureTrust!</p>
+              <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>
+                Funds have been released. Thank you for using SecureTrust!
+              </p>
+              <RatingPanel
+                transactionId={_id}
+                isBuyer={isBuyer}
+                onToast={showToast}
+                onRated={onRated}
+              />
             </div>
           ) : viewingMilestone === 1 ? (
             <Milestone1Panel
@@ -541,35 +642,36 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
           )}
 
           {/* Role footer */}
-          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem", justifyContent: "center" }}>
             {isBuyer  && <span className="status pending" style={{ fontSize: "0.75rem" }}>You are the Buyer</span>}
             {isSeller && <span className="status completed" style={{ fontSize: "0.75rem" }}>You are the Seller</span>}
           </div>
 
           {/* Dispute section */}
-          <div className="dashboard-section">
-            <h3>Dispute</h3>
-            {!showEscalate ? (
-              <button className="action-btn escalate" onClick={() => setShowEscalate(true)}>
-                Escalate to Mediator
-              </button>
-            ) : (
-              <>
-                <textarea
-                  className="escalation-reason"
-                  placeholder="Describe the issue..."
-                  value={escalationReason}
-                  onChange={(e) => setEscalationReason(e.target.value)}
-                  rows={3}
-                />
-                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                  <button className="action-btn escalate" onClick={handleEscalate}>Submit Dispute</button>
-                  <button className="action-btn" onClick={() => setShowEscalate(false)}>Cancel</button>
-                </div>
-              </>
-            )}
-          </div>
-
+          {!isComplete && (
+            <div className="dashboard-section">
+              <h3>Dispute</h3>
+              {!showEscalate ? (
+                <button className="action-btn escalate" onClick={() => setShowEscalate(true)}>
+                  Escalate to Mediator
+                </button>
+              ) : (
+                <>
+                  <textarea
+                    className="escalation-reason"
+                    placeholder="Describe the issue..."
+                    value={escalationReason}
+                    onChange={(e) => setEscalationReason(e.target.value)}
+                    rows={3}
+                  />
+                  <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                    <button className="action-btn escalate" onClick={handleEscalate}>Submit Dispute</button>
+                    <button className="action-btn" onClick={() => setShowEscalate(false)}>Cancel</button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </>

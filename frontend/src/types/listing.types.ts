@@ -6,6 +6,8 @@ export interface ListingUser {
   firstName: string;
   lastName: string;
   email: string;
+  rating?: number;
+  totalRatings?: number;
 }
 
 export interface ListingData {

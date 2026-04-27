@@ -25,6 +25,7 @@ export const ViewListing: React.FC = () => {
   const [showEdit, setShowEdit]             = useState(false);
   const [currentImage, setCurrentImage]     = useState(0);
   const [transaction, setTransaction]       = useState<TransactionData | null>(null);
+  const [hasRated, setHasRated]             = useState<boolean | null>(null);
 
   const formatKey = (key: string) =>
     key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase()).trim();
@@ -61,8 +62,6 @@ export const ViewListing: React.FC = () => {
         const txSellerId = typeof tx.sellerId === "object" ? (tx.sellerId as any)._id : tx.sellerId;
         return (
           txListingId === listingId &&
-          tx.status !== "cancelled" &&
-          tx.status !== "completed" &&
           (tx.buyerId === user._id || txSellerId === user._id)
         );
       });
@@ -73,6 +72,14 @@ export const ViewListing: React.FC = () => {
     };
     fetchTransaction();
   }, [data, user]);
+
+  useEffect(() => {
+  if (!transaction || !user) return;
+  fetch(`/api/ratings/transaction/${transaction._id}/mine`, { credentials: "include" })
+    .then(r => r.json())
+    .then(d => setHasRated(d.hasRated))
+    .catch(() => {});
+}, [transaction]);
 
   const handleEditSuccess = (updatedData: ListingData) => {
     setData(updatedData);
@@ -89,7 +96,11 @@ export const ViewListing: React.FC = () => {
       const listingId = typeof data._id === "string" ? data._id : (data._id as any)._id;
       const existing = txs.find((tx) => {
         const txListingId = typeof tx.listingId === "object" ? tx.listingId._id : tx.listingId;
-        return txListingId === listingId && tx.status !== "cancelled" && tx.status !== "completed";
+        const txSellerId = typeof tx.sellerId === "object" ? (tx.sellerId as any)._id : tx.sellerId;
+        return (
+          txListingId === listingId &&
+          (tx.buyerId === user._id || txSellerId === user._id)
+        );
       });
       if (existing) {
         setTransaction(existing);
@@ -133,10 +144,8 @@ export const ViewListing: React.FC = () => {
       method: "POST",
       body: { participantId: data.user._id },
     });
-    // Add to list if not already present
-    setConversations(prev =>
-      prev.some(c => c._id === conversation._id) ? prev : [conversation, ...prev]
-    );
+    const updated = await api<Conversation[]>("/api/conversations");
+    setConversations(updated);
     setActiveConversationId(conversation._id);
     setPanelOpen(true);
   };
@@ -154,7 +163,7 @@ export const ViewListing: React.FC = () => {
       {/* Top bar */}
       <div className="vl-topbar">
         <button className="vl-back-btn" onClick={() => navigate(-1)}>← Back</button>
-        {isOwner && (
+        {isOwner && !data.isLocked && (
           <button className="vl-edit-btn" onClick={() => setShowEdit(true)}>
             ✏️ Edit Listing
           </button>
@@ -200,6 +209,11 @@ export const ViewListing: React.FC = () => {
                   {data.user.firstName} {data.user.lastName}
                 </div>
                 <div className="vl-seller-email">{data.user.email}</div>
+                <div style={{ fontSize: "0.82rem", color: "var(--gold)", marginTop: "0.25rem" }}>
+                  {data.user.rating
+                    ? `${"★".repeat(Math.round(data.user.rating))}${"☆".repeat(5 - Math.round(data.user.rating))} ${data.user.rating.toFixed(1)} / 5`
+                    : "No ratings yet"}
+                </div>
               </div>
             </div>
           </div>
@@ -269,9 +283,14 @@ export const ViewListing: React.FC = () => {
                 Transaction in Progress
               </button>
             )}
-            {transaction && (
+            {transaction && !data.isSold && (
               <button className="vl-btn-primary" onClick={handleManageSale}>
                 Manage Sale
+              </button>
+            )}
+            {transaction && data.isSold && hasRated === false && (
+              <button className="vl-btn-primary" onClick={handleManageSale}>
+                Rate Transaction
               </button>
             )}
             {!isOwner && user && (
@@ -292,6 +311,7 @@ export const ViewListing: React.FC = () => {
           sellerID={data.user._id}
           onClose={() => setShowDashboard(false)}
           onTransactionUpdate={(updated) => setTransaction(updated)}
+          onRated={() => { setHasRated(true); setShowDashboard(false); }}
         />
       )}
 
