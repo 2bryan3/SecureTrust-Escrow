@@ -36,6 +36,7 @@ export default function Profile() {
   const [address, setAddress] = useState("");
   const [infoSaving, setInfoSaving] = useState(false);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const [infoError, setInfoError] = useState(false);
 
   // Listings tab state
   const [listings, setListings] = useState<ListingData[]>([]);
@@ -121,6 +122,7 @@ export default function Profile() {
     try {
       setInfoSaving(true);
       setInfoMsg(null);
+      setInfoError(false);
       const updateData: any = { firstName, lastName };
       if (password.trim() !== "") updateData.password = password;
       if (address.trim() !== "") updateData.address = address;
@@ -128,9 +130,15 @@ export default function Profile() {
       await refreshUser();
       setPassword("");
       setInfoMsg("Changes saved successfully.");
+      setInfoError(false);
     } catch (err) {
       console.error(err);
-      setInfoMsg("Failed to save changes.");
+      setInfoError(true);
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setInfoMsg(err.response.data.message);
+      } else {
+        setInfoMsg("Failed to save changes.");
+      }
     } finally {
       setInfoSaving(false);
     }
@@ -276,12 +284,12 @@ export default function Profile() {
                   <input
                     value={address}
                     onChange={e => setAddress(e.target.value)}
-                    placeholder="123 Main Street, Albany, NY 12345"
+                    placeholder="Ex: 123 Main Street, Albany, NY 12345"
                   />
                 </div>
               </div>
               {infoMsg && (
-                <p className={`profile-msg ${infoMsg.includes("Failed") ? "profile-msg--error" : "profile-msg--success"}`}>
+                <p className={`profile-msg ${infoError ? "profile-msg--error" : "profile-msg--success"}`}>
                   {infoMsg}
                 </p>
               )}

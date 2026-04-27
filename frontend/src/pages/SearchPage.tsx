@@ -14,12 +14,15 @@ export const SearchPage: React.FC = () => {
   const sortBy     = searchParams.get("sortBy") || "newest";
   const minPrice   = searchParams.get("minPrice") || "";
   const maxPrice   = searchParams.get("maxPrice") || "";
+  const city       = searchParams.get("city") || "";
+  const street     = searchParams.get("street") || "";
+  const state      = searchParams.get("state") || "";
   const attributes = searchParams.get("attributes") || "";
 
   const [listings, setListings] = useState<ListingData[]>([]);
   const [loading, setLoading]   = useState(true);
 
-  const hasAdvancedFilters = category || minPrice || maxPrice || attributes || sortBy !== "newest";
+  const hasAdvancedFilters = category || minPrice || maxPrice || attributes || sortBy !== "newest" || city || street || state;
 
   useEffect(() => {
     if (!q && !hasAdvancedFilters) {
@@ -37,6 +40,9 @@ export const SearchPage: React.FC = () => {
       if (sortBy)     params.set("sortBy", sortBy);
       if (minPrice)   params.set("minPrice", minPrice);
       if (maxPrice)   params.set("maxPrice", maxPrice);
+      if (city)       params.set("city", city);
+      if (street)     params.set("street", street);
+      if (state)      params.set("state", state);
       if (attributes) params.set("attributes", attributes);
 
       fetch(`/api/listings?${params.toString()}`, { credentials: "include" })
@@ -50,7 +56,7 @@ export const SearchPage: React.FC = () => {
         .then(data => { setListings(data.listings ?? []); setLoading(false); })
         .catch(() => setLoading(false));
     }
-  }, [q, category, sortBy, minPrice, maxPrice, attributes]);
+  }, [q, category, sortBy, minPrice, maxPrice, attributes, city, street, state]);
 
   // Build a readable summary of active filters
   const filterSummary: string[] = [];
@@ -58,6 +64,9 @@ export const SearchPage: React.FC = () => {
   if (minPrice && maxPrice) filterSummary.push(`$${minPrice}–$${maxPrice}`);
   else if (minPrice) filterSummary.push(`$${minPrice}+`);
   else if (maxPrice) filterSummary.push(`up to $${maxPrice}`);
+  if (city) filterSummary.push(city);
+  if (street) filterSummary.push(street);
+  if (state) filterSummary.push(state);
   if (attributes) {
     try {
       const parsed = JSON.parse(attributes);

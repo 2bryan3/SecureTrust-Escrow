@@ -14,6 +14,7 @@ export const AdvancedSearchPage: React.FC = () => {
   const [sortBy,     setSortBy]     = useState("newest");
   const [minPrice,   setMinPrice]   = useState("");
   const [maxPrice,   setMaxPrice]   = useState("");
+  const [street,     setStreet]     = useState("");
   const [city,       setCity]       = useState("");
   const [state,      setState]      = useState("");
   const [attrValues, setAttrValues] = useState<Record<string, string>>({});
@@ -37,6 +38,7 @@ export const AdvancedSearchPage: React.FC = () => {
     if (sortBy && sortBy !== "newest") params.set("sortBy", sortBy);
     if (minPrice) params.set("minPrice", minPrice);
     if (maxPrice) params.set("maxPrice", maxPrice);
+    if (street)   params.set("street", street)
     if (city)     params.set("city", city);
     if (state)    params.set("state", state);
 
@@ -177,6 +179,19 @@ export const AdvancedSearchPage: React.FC = () => {
                   onChange={e => setMaxPrice(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* Street */}
+            <div className="adv-field-group">
+              <label className="adv-label">Street</label>
+              <input
+                className="adv-input"
+                type="text"
+                placeholder="Enter street..."
+                value={street}
+                onChange={e => setStreet(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
+              />
             </div>
 
             {/* City */}
