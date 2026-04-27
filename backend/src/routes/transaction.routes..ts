@@ -244,7 +244,12 @@ router.patch("/:id/milestone2/confirm", async (req: Request, res: Response) => {
     tx.status                     = "completed";
 
     // Credit the seller's in-app balance (simulates payout until Stripe Connect is set up)
-    await User.findByIdAndUpdate(tx.sellerId, { $inc: { funds: tx.amount } });
+    await User.findByIdAndUpdate(tx.sellerId, { 
+      $inc: { 
+        funds: tx.amount,
+        totalSales: 1
+      } 
+    });
 
     await tx.save();
     await Listing.findByIdAndUpdate(tx.listingId, { isSold: true });

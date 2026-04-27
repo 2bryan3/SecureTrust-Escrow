@@ -14,6 +14,7 @@ const UserSchema = new mongoose.Schema(
     funds:      { type: Number, default: 0 },
     rating:     { type: Number, default: 0 },
     totalRatings: { type: Number, default: 0 },
+    totalSales:   { type: Number, default: 0 },
     address:    { type: String },
     location:   {
       type: {
