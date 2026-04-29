@@ -1,4 +1,4 @@
-// frontend/src/pages/CreateItem.tsx
+// frontend/src/pages/CreateListing.tsx
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { NavBar } from "../components/NavBar";

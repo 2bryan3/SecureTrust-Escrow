@@ -11,6 +11,7 @@ const ListingSchema = new mongoose.Schema({
     },
     isSold: {type: Boolean, default: false},
     isLocked: {type: Boolean, default: false},
+    isEscalated: {type: Boolean, default: false},
     deliveryMethod: {type: String, enum: ["shipping", "local_pickup"], required: true},
     attributes: {type: mongoose.Schema.Types.Mixed, default: {}}
 }, {timestamps: true, versionKey: false})

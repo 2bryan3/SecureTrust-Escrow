@@ -19,6 +19,7 @@ export const MessagesPanel: React.FC = () => {
     setActiveConversationId,
     messagesMap,
     setMessagesMap,
+    markAsRead,
   } = useConversationContext();
   const { user } = useAuth();
 
@@ -36,6 +37,7 @@ export const MessagesPanel: React.FC = () => {
     if (!activeConversationId || !panelOpen) return;
     let cancelled = false;
     setLoadingMsgs(true);
+
     api<ConversationMessage[]>(`/api/conversations/${activeConversationId}/messages`)
       .then(msgs => {
         if (cancelled) return;
@@ -48,9 +50,11 @@ export const MessagesPanel: React.FC = () => {
           );
           return { ...prev, [activeConversationId]: merged };
         });
+        markAsRead(activeConversationId);
       })
       .catch(console.error)
       .finally(() => { if (!cancelled) setLoadingMsgs(false); });
+
     return () => { cancelled = true; };
   }, [activeConversationId, panelOpen]);
 
@@ -96,11 +100,26 @@ export const MessagesPanel: React.FC = () => {
     }
   };
 
+  const handleSelectConversation = (convId: string) => {
+    setActiveConversationId(convId);
+    markAsRead(convId);
+  };
+
   const getOtherParticipant = (conv: Conversation) =>
     conv.participants.find(p => String(p._id) !== String(user?._id)) ?? conv.participants[0];
 
-  const formatTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const formatTime = (iso: string) => {
+      const date = new Date(iso);
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      if (isToday) {
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      }
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  };
+  
+  const formatMessageTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   if (!panelOpen) return null;
 
@@ -115,7 +134,7 @@ export const MessagesPanel: React.FC = () => {
             <X size={20} />
           </button>
         </div>
-
+ 
         <div className="mp-body">
           {/* Conversation list */}
           <div className="mp-conv-list">
@@ -125,24 +144,47 @@ export const MessagesPanel: React.FC = () => {
               conversations.map(conv => {
                 const other = getOtherParticipant(conv);
                 const isActive = conv._id === activeConversationId;
+                const unread = user ? (conv.unreadCounts?.[user._id] ?? 0) : 0;
+                const hasUnread = unread > 0;
+ 
                 return (
                   <div
                     key={conv._id}
-                    className={`mp-conv-item${isActive ? " mp-conv-item--active" : ""}`}
-                    onClick={() => setActiveConversationId(conv._id)}
+                    className={`mp-conv-item${isActive ? " mp-conv-item--active" : ""}${hasUnread ? " mp-conv-item--unread" : ""}`}
+                    onClick={() => handleSelectConversation(conv._id)}
                   >
-                    <div className="mp-conv-avatar">
-                      {other?.firstName?.[0] ?? "?"}
-                      {other?.lastName?.[0] ?? ""}
+                    {/* Avatar with unread dot */}
+                    <div className="mp-conv-avatar-wrap">
+                      <div className="mp-conv-avatar">
+                        {other?.firstName?.[0] ?? "?"}
+                        {other?.lastName?.[0] ?? ""}
+                      </div>
+                      {hasUnread && <span className="mp-conv-unread-dot" />}
                     </div>
+ 
                     <div className="mp-conv-info">
-                      <span className="mp-conv-name">
-                        {other?.firstName} {other?.lastName}
-                      </span>
-                      {conv.lastMessage && (
-                        <span className="mp-conv-preview">{conv.lastMessage.text}</span>
-                      )}
+                      <div className="mp-conv-info-top">
+                        <span className={`mp-conv-name${hasUnread ? " mp-conv-name--unread" : ""}`}>
+                          {other?.firstName} {other?.lastName}
+                        </span>
+                        {conv.lastMessage && (
+                          <span className="mp-conv-time">
+                            {formatTime(conv.lastMessage.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mp-conv-info-bottom">
+                        {conv.lastMessage && (
+                          <span className={`mp-conv-preview${hasUnread ? " mp-conv-preview--unread" : ""}`}>
+                            {conv.lastMessage.text}
+                          </span>
+                        )}
+                        {hasUnread && (
+                          <span className="mp-conv-badge">{unread > 99 ? "99+" : unread}</span>
+                        )}
+                      </div>
                     </div>
+ 
                     <button
                       className="mp-conv-delete"
                       onClick={e => handleDeleteConversation(e, conv._id)}
@@ -156,7 +198,7 @@ export const MessagesPanel: React.FC = () => {
               })
             )}
           </div>
-
+ 
           {/* Message thread */}
           <div className="mp-thread">
             {!activeConversationId ? (
@@ -173,31 +215,40 @@ export const MessagesPanel: React.FC = () => {
                     </span>
                   )}
                 </div>
-
+ 
                 <div className="mp-messages">
                   {loadingMsgs ? (
                     <div className="mp-loading">Loading messages…</div>
                   ) : messages.length === 0 ? (
                     <div className="mp-loading">No messages yet. Say hello!</div>
                   ) : (
-                    messages.map(msg => {
+                    messages.map((msg, idx) => {
                       const myId = user?._id ? String(user._id) : "";
                       const senderId = msg.sender ? String(msg.sender) : "";
                       const isMine = !!myId && myId === senderId;
+ 
+                      // Show timestamp if first message, or if >5 mins since last message
+                      const prevMsg = messages[idx - 1];
+                      const showTimestamp = !prevMsg ||
+                        new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime() > 5 * 60 * 1000;
+ 
                       return (
-                        <div
-                          key={msg._id}
-                          className={`mp-msg${isMine ? " mp-msg--mine" : " mp-msg--theirs"}`}
-                        >
-                          <div className="mp-msg-bubble">{msg.text}</div>
-                          <span className="mp-msg-time">{formatTime(msg.createdAt)}</span>
+                        <div key={msg._id}>
+                          {showTimestamp && (
+                            <div className="mp-msg-timestamp">
+                              {formatMessageTime(msg.createdAt)}
+                            </div>
+                          )}
+                          <div className={`mp-msg${isMine ? " mp-msg--mine" : " mp-msg--theirs"}`}>
+                            <div className="mp-msg-bubble">{msg.text}</div>
+                          </div>
                         </div>
                       );
                     })
                   )}
                   <div ref={messagesEndRef} />
                 </div>
-
+ 
                 <div className="mp-input-row">
                   <input
                     className="mp-input"

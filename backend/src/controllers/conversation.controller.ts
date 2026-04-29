@@ -47,8 +47,7 @@ export const getOrCreateConversation = async (req: Request, res: Response) => {
 
         res.status(200).json(populated);
     } catch (error: any) {
-        console.log("Error in getOrCreateConversation:", error.message);
-        res.status(500).json({ error: "Internal Server Error" }); // Send Error Message to User
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };
 
@@ -59,14 +58,13 @@ export const getMessages = async (req: Request, res: Response) => {
 
         const conversation = await Conversation.findOne({ _id: id, participants: userId });
         if (!conversation) {
-            return res.status(403).json({ error: "Forbidden" }); // Send Error Message to User
+            return res.status(403).json({ error: "Forbidden" });
         }
 
         const messages = await Message.find({ conversationId: id }).sort({ createdAt: 1 });
         res.status(200).json(messages);
     } catch (error: any) {
-        console.log("Error in getMessages:", error.message);
-        res.status(500).json({ error: "Internal Server Error" }); // Send Error Message to User
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };
 
@@ -79,7 +77,7 @@ export const sendMessage = async (req: Request, res: Response) => {
         // Verify sender is authed before creating anything
         const conversation = await Conversation.findOne({ _id: id, participants: senderId });
         if (!conversation) {
-            return res.status(403).json({ error: "Forbidden" }); // Send Error Message to User
+            return res.status(403).json({ error: "Forbidden" });
         }
 
         const message = await Message.create({
@@ -88,7 +86,14 @@ export const sendMessage = async (req: Request, res: Response) => {
             text,
         });
 
-        await Conversation.findByIdAndUpdate(id, { lastMessage: message._id });
+        const unreadUpdate: Record<string, number> = {};
+        conversation.participants.forEach((participantId: any) => {
+            if (participantId.toString() !== senderId.toString()) {
+                unreadUpdate[`unreadCounts.${participantId.toString()}`] = 1;
+            }
+        });
+
+        await Conversation.findByIdAndUpdate(id, { lastMessage: message._id, $inc: unreadUpdate });
 
         // Use socket to send to everyone in real time
         const io = getIO();
@@ -113,10 +118,27 @@ export const sendMessage = async (req: Request, res: Response) => {
 
         res.status(201).json(message);
     } catch (error: any) {
-        console.log("Error in sendMessage:", error.message);
-        res.status(500).json({ error: "Internal Server Error" }); // Send Error Message to User
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+// ─── PATCH /:id/read — reset unread count for current user ───────────────────
+export const markConversationRead = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id?.toString();
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+ 
+    await Conversation.findByIdAndUpdate(id, {
+      $set: { [`unreadCounts.${userId}`]: 0 },
+    });
+ 
+    res.status(200).json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 
 export const hideConversation = async (req: Request, res: Response) => {
     try {
@@ -126,13 +148,12 @@ export const hideConversation = async (req: Request, res: Response) => {
         // Allow participants to hide their own view of a conversation
         const conversation = await Conversation.findOne({ _id: id, participants: userId });
         if (!conversation) {
-            return res.status(403).json({ error: "Forbidden" }); // Send Error Message to User
+            return res.status(403).json({ error: "Forbidden" });
         }
 
         await Conversation.findByIdAndUpdate(id, { $addToSet: { hiddenBy: userId } });
         res.status(200).json({ success: true });
     } catch (error: any) {
-        console.log("Error in hideConversation:", error.message);
-        res.status(500).json({ error: "Internal Server Error" }); // Send Error Message to User
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };

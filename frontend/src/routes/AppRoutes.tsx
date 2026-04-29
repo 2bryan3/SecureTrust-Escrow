@@ -2,7 +2,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { HomePage } from "../pages/HomePage";
-import { CreateItem } from "../pages/CreateItem";
+import { CreateItem } from "../pages/CreateListing";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import Profile from "../pages/Profile";
@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { SearchPage } from "../pages/SearchPage";
 import { PopularPage } from "../pages/PopularPage";
 import { AdvancedSearchPage } from "../pages/AdvanceSearchPage";
+import { EscalationPage } from "../pages/EscalationPage";
 
 
 // ── Role guards ───────────────────────────────────────────────────────────────
@@ -52,6 +53,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/profile" element={
         <RequireAuth><Profile /></RequireAuth>
+      } />
+      <Route path="/escalate/:transactionId" element={
+        <RequireAuth><EscalationPage /></RequireAuth>
       } />
 
       {/* Requires mediator or admin */}
