@@ -1,12 +1,22 @@
 import { z } from "zod";
 import { Types } from "mongoose";
 
+const LocationSchema = z.object({
+  type: z.literal("Point"),
+  coordinates: z.tuple([z.number(), z.number()]) // [lon, lat]
+});
+
 export const BaseUserSchema = z.object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
     username: z.string().min(1, "Username must be at least 1 characters long"),
     password: z.string().min(6, "Password must be at least 6 characters long"),
     email: z.email("Invalid email address"),
+    address: z.string().min(1, "Address is required").optional(),
+    location: LocationSchema.optional(),
+    street: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
     roleID: z
       .string()
       .refine((val) => Types.ObjectId.isValid(val), {
@@ -69,6 +79,11 @@ export const UserUpdateSchema = z
     email: z.string().email().optional(),
     password: z.string().min(6).optional(),
     avatar: z.string().optional(), // can be base64 or URL
+    address: z.string().optional(),
+    location: LocationSchema.optional(),
+    street: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
   })
   .refine((data) => data.password === undefined || data.password.length >= 6, {
     message: "Password must be at least 6 characters",

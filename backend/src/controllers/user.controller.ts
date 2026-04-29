@@ -9,7 +9,7 @@ import { ListingFavorites } from "../models/listingFavorite.model";
 //import Message from "../models/messages.model.js";
 //import Conversation from "../models/conversations.model.js";
 import { ListingReport } from "../models/listingReport.model";
-
+import { geocodeAddress } from "../utils/geocodeAddress";
 
 export const updateUser = async (req: Request, res: Response) => {
   try {
@@ -41,6 +41,40 @@ export const updateUser = async (req: Request, res: Response) => {
     if (updateData.password) {
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(updateData.password, salt);
+    }
+
+    // Set address, location, city, and state
+    if (updateData.address) {
+      const addressInput = updateData.address.trim();
+     
+      // Require address to have proper format (e.g., "street, city, state")
+      const addressParts = addressInput.split(",").map(p => p.trim());
+      if (addressParts.length < 2) {
+        return res.status(400).json({ message: "Invalid address format. Please use: Street, City, State" });
+      }
+      
+      let geo;
+      try {
+        geo = await geocodeAddress(updateData.address);
+      } catch (error: any) {
+        return res.status(400).json({ message: "Invalid address, please check the address and try again." });
+      }
+
+      if (!geo || !geo.street || !geo.city || !geo.state) {
+        return res.status(400).json({ message: "Invalid address, please enter a full street address including city and state." });
+      }
+      
+      updateData.location = {
+        type: "Point",
+        coordinates: [geo.lon, geo.lat],
+      };
+
+      updateData.street = geo.street;
+      updateData.city = geo.city;
+      updateData.state = geo.state;
+      console.log(geo.street);
+      console.log(geo.city);
+      console.log(geo.state);
     }
 
     // Update the user

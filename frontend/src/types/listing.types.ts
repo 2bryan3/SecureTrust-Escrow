@@ -23,6 +23,9 @@ export interface ListingData {
   deliveryMethod: "shipping" | "local_pickup";
   createdAt: string;
   updatedAt: string;
+  street: string;
+  city: string;
+  state: string;
   isFavorited?: boolean;
   favoriteCount?: number;
   attributes?: Record<string, string>;

@@ -25,11 +25,12 @@ const UserSchema = new mongoose.Schema(
         type: [Number], // [lon, lat]
       }
     },
+    street: String,
     city: String,
     state: String,
   },
   { timestamps: true, versionKey: false }
 );
-
+UserSchema.index({ location: "2dsphere" });
 export type UserType = InferSchemaType<typeof UserSchema>;
 export const User = mongoose.model("User", UserSchema);

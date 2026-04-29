@@ -11,10 +11,12 @@ interface Props {
   onChange: (val: string) => void;
   options: Option[];
   placeholder?: string;
+  searchable?: boolean;
 }
 
-export const CustomSelect: React.FC<Props> = ({ value, onChange, options, placeholder }) => {
+export const CustomSelect: React.FC<Props> = ({ value, onChange, options, placeholder, searchable = false }) => {
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,6 +26,12 @@ export const CustomSelect: React.FC<Props> = ({ value, onChange, options, placeh
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (open && searchable) {
+      setSearchTerm("");
+    }
+  }, [open, searchable]);
 
   const selected = options.find(o => o.value === value);
 
@@ -39,7 +47,25 @@ export const CustomSelect: React.FC<Props> = ({ value, onChange, options, placeh
       </button>
       {open && (
         <div className="adv-custom-select-dropdown">
-          {options.map(opt => (
+          {searchable && (
+            <div className="adv-custom-select-search">
+              <input 
+                type="text"
+                className="adv-custom-select-item"
+                placeholder="Type to filter..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                autoFocus
+              />
+            </div>
+          )}
+          {(searchTerm
+            ? options.filter(opt =>
+                opt.label.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+                opt.value.toLowerCase().startsWith(searchTerm.toLowerCase())
+              )
+            : options
+          ).map(opt => (
             <button
               key={opt.value}
               type="button"
