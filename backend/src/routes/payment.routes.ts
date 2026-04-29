@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import express from "express";
 import { stripe } from "../utils/stripe";
 import { TransactionModel } from "../models/transaction.model";
+import { Listing } from "../models/listing.model";
 
 const router = Router();
 
@@ -117,6 +118,7 @@ router.post(
             }
 
             await tx.save();
+            await Listing.findByIdAndUpdate(tx.listingId, { isLocked: true });
             console.log(`Transaction ${tx._id} — buyer funds authorized via webhook.`);
           }
           break;
@@ -124,11 +126,15 @@ router.post(
 
         case "payment_intent.payment_failed": {
           console.warn(`PaymentIntent ${paymentIntent.id} failed:`, paymentIntent.last_payment_error?.message);
+          const tx = await TransactionModel.findOne({ stripePaymentIntentId: paymentIntent.id });
+          if (tx) await Listing.findByIdAndUpdate(tx.listingId, { isLocked: false });
           break;
         }
 
         case "payment_intent.canceled": {
           console.log(`PaymentIntent ${paymentIntent.id} was canceled.`);
+          const tx = await TransactionModel.findOne({ stripePaymentIntentId: paymentIntent.id });
+          if (tx) await Listing.findByIdAndUpdate(tx.listingId, { isLocked: false });
           break;
         }
 

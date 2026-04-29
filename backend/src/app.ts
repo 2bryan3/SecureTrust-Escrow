@@ -8,6 +8,7 @@ import disputeRouter from "./routes/dispute.routes";
 import transactionRouter from "./routes/transaction.routes.";
 import paymentRouter from "./routes/payment.routes";
 import convRouter from "./routes/conversation.routes";
+import raitingRouter from "./routes/rating.routes";
 
 const app = express();
 
@@ -26,5 +27,6 @@ app.use("/disputes", disputeRouter);
 app.use("/transactions", transactionRouter);
 app.use("/payment", paymentRouter);
 app.use("/conversations", convRouter);
+app.use("/ratings", raitingRouter);
 
 export default app;

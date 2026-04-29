@@ -1,6 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "../styles/ListingDashboard.css";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { ToastPortal } from "./ToastPortal";
 import { StripePaymentModal } from "./StripePaymentModal";
 import type {
@@ -20,6 +21,7 @@ interface ListingDashboardPopupProps {
   onTransactionUpdate: (updated: TransactionData) => void;
   /** Pass true when running without a real backend — actions update state locally. */
   mockMode?: boolean;
+  onRated?: () => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -193,32 +195,48 @@ const Milestone1Panel: React.FC<M1PanelProps> = ({
           <div className="actions-section">
             <h3>⚠️ Your action required</h3>
             <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Package photo</label>
-            <div className="evidence-dropzone" onClick={() => fileInputRef.current?.click()}>
-              {imageUrl
-                ? <img src={imageUrl} alt="Package preview" style={{ maxHeight: "120px", borderRadius: "8px" }} />
-                : <><span className="evidence-icon">📷</span><span className="evidence-hint">Click to attach package photo</span></>
-              }
+            <div
+              className="evidence-dropzone"
+              onClick={() => { if (!imageUrl) fileInputRef.current?.click(); }}
+              style={{ cursor: imageUrl ? "default" : "pointer" }}
+            >
+              {imageUrl ? (
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img
+                    src={imageUrl}
+                    alt="Package preview"
+                    style={{ maxHeight: "120px", borderRadius: "8px" }}
+                  />
+                  <button
+                    onClick={e => { e.stopPropagation(); setImageUrl(""); }}
+                    style={{
+                      position: "absolute", top: "-6px", right: "-6px",
+                      background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "50%",
+                      width: "18px", height: "18px", color: "var(--muted)",
+                      fontSize: "0.7rem", cursor: "pointer", display: "flex",
+                      alignItems: "center", justifyContent: "center", lineHeight: 1,
+                    }}
+                  >×</button>
+                </div>
+              ) : (
+                <>
+                  <span className="evidence-icon">📷</span>
+                  <span className="evidence-hint">Click to attach package photo</span>
+                </>
+              )}
             </div>
             <input
               type="file"
               accept="image/*"
               ref={fileInputRef}
               style={{ display: "none" }}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (file) setImageUrl(URL.createObjectURL(file));
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => setImageUrl(reader.result as string);
+                reader.readAsDataURL(file);
               }}
-            />
-
-            <label style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "0.5rem", display: "block" }}>
-              Or paste image URL
-            </label>
-            <input
-              className="escalation-reason"
-              style={{ padding: "8px 12px", marginBottom: "8px" }}
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
             />
 
             <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Tracking number</label>
@@ -300,7 +318,6 @@ interface M2PanelProps {
 const Milestone2Panel: React.FC<M2PanelProps> = ({
   txId, currentUserId, isBuyer, isSeller, m1, m2, amount, transaction, onUpdate, onToast, mockMode,
 }) => {
-  const [note, setNote]             = useState("");
   const [confirming, setConfirming] = useState(false);
 
   const isLocked   = m2.status === "locked";
@@ -309,7 +326,7 @@ const Milestone2Panel: React.FC<M2PanelProps> = ({
   const handleConfirm = async () => {
     setConfirming(true);
     try {
-      const body = { buyerId: currentUserId, buyerConfirmNote: note || null };
+      const body = { buyerId: currentUserId };
       const updated = mockMode
         ? applyMockAction(transaction, "milestone2/confirm", body)
         : await patchTx(txId, "milestone2/confirm", body);
@@ -361,14 +378,6 @@ const Milestone2Panel: React.FC<M2PanelProps> = ({
                 By confirming, you release <strong>${amount.toLocaleString()}</strong> to the seller.
                 This cannot be undone.
               </p>
-              <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Optional note for the seller</label>
-              <textarea
-                className="escalation-reason"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Everything arrived in great condition!"
-                rows={3}
-              />
               <button className="action-btn release" onClick={handleConfirm} disabled={confirming}>
                 {confirming ? "Processing…" : `✅ Confirm Receipt & Release $${amount.toLocaleString()}`}
               </button>
@@ -383,16 +392,115 @@ const Milestone2Panel: React.FC<M2PanelProps> = ({
   );
 };
 
+// ─── Rating Panel ─────────────────────────────────────────────────────────────
+
+interface RatingPanelProps {
+  transactionId: string;
+  isBuyer: boolean;
+  onToast: (msg: string, type: "success" | "error") => void;
+  onRated?: () => void;
+}
+
+const RatingPanel: React.FC<RatingPanelProps> = ({
+  transactionId, isBuyer, onToast, onRated
+}) => {
+  const [hasRated, setHasRated]   = useState<boolean | null>(null);
+  const [rating, setRating]       = useState(0);
+  const [hover, setHover]         = useState(0);
+  const [note, setNote]           = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/ratings/transaction/${transactionId}/mine`, { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setHasRated(d.hasRated))
+      .catch(() => setHasRated(false));
+  }, [transactionId]);
+
+  const handleSubmit = async () => {
+    if (rating === 0) { onToast("Please select a star rating.", "error"); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/ratings", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId, rating, note: note || null }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setHasRated(true);
+      onToast("Rating submitted!", "success");
+      onRated?.();
+    } catch (e: any) {
+      onToast(e.message, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (hasRated === null) return <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>Loading…</p>;
+
+  if (hasRated) return (
+    <div style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+      ✓ You've already submitted a rating for this transaction.
+    </div>
+  );
+
+  const label = isBuyer ? "Rate the Seller" : "Rate the Buyer";
+
+  return (
+    <div className="actions-section">
+      <h3 style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted)", margin: "0 0 0.75rem" }}>
+        {label}
+      </h3>
+
+      {/* Stars */}
+      <div style={{ display: "flex", gap: "0.35rem", marginBottom: "0.75rem" }}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <button
+            key={star}
+            onClick={() => setRating(star)}
+            onMouseEnter={() => setHover(star)}
+            onMouseLeave={() => setHover(0)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "1.6rem",
+              color: star <= (hover || rating) ? "var(--gold)" : "var(--border)",
+              transition: "color 0.1s",
+              padding: 0,
+            }}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+
+      <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Optional note</label>
+      <textarea
+        className="escalation-reason"
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder={isBuyer ? "Great seller, shipped quickly!" : "Reliable buyer, smooth transaction!"}
+        rows={3}
+      />
+      <button className="action-btn add" onClick={handleSubmit} disabled={submitting || rating === 0}>
+        {submitting ? "Submitting…" : "Submit Rating"}
+      </button>
+    </div>
+  );
+};
+
 // ─── Main popup ───────────────────────────────────────────────────────────────
 
 export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
   transaction,
   currentUserId,
-  listingID,
-  sellerID,
   onClose,
   onTransactionUpdate,
   mockMode = false,
+  onRated,
 }) => {
   const { _id, milestone1, milestone2, amount, escrowAmount, status } = transaction;
 
@@ -406,8 +514,6 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
   const isBuyer  = buyerId  === currentUserId;
   const isSeller = sellerId === currentUserId;
 
-  const [escalationReason, setEscalationReason] = useState("");
-  const [showEscalate, setShowEscalate]         = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const showToast = (message: string, type: "success" | "error") => setToast({ message, type });
@@ -419,25 +525,19 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
   const defaultView = status === "milestone2" || isComplete ? 2 : 1;
   const [viewingMilestone, setViewingMilestone] = React.useState<1 | 2>(defaultView as 1 | 2);
 
+  const navigate = useNavigate();
+  const [isEscalated, setIsEscalated] = useState(false);
+
   React.useEffect(() => {
     if (status === "milestone2" || isComplete) setViewingMilestone(2);
   }, [status, isComplete]);
 
-  const handleEscalate = async () => {
-    if (!escalationReason.trim()) return;
-    try {
-      await axios.post("/api/disputes/create", {
-        listingID,
-        sellerID,
-        reason: escalationReason,
-      }, { withCredentials: true });
-      showToast("Dispute submitted. A mediator will review your case.", "success");
-      setShowEscalate(false);
-      setEscalationReason("");
-    } catch (err: any) {
-      showToast(err.response?.data?.message ?? "Failed to submit dispute.", "error");
-    }
-  };
+  useEffect(() => {
+    axios.get(`/api/disputes/transaction/${transaction._id}`, { withCredentials: true })
+      .then(res => { if (res.data.dispute) setIsEscalated(true); })
+      .catch(() => {});
+  }, [transaction._id]);
+
 
   return (
     <>
@@ -491,11 +591,34 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
             </div>
           </div>
 
+          {/* Disputed banner */}
+          {status === "disputed" && (
+            <div style={{
+              background: "rgba(245,158,11,0.08)",
+              border: "1px solid rgba(245,158,11,0.25)",
+              borderRadius: "10px",
+              padding: "0.75rem 1rem",
+              fontSize: "0.85rem",
+              color: "var(--text)",
+              marginBottom: "1rem",
+            }}>
+              ⚖️ <strong>This transaction is under mediator review.</strong> Milestone actions are paused until a ruling is made.
+            </div>
+          )}
+
           {/* Milestone panels */}
           {isComplete && viewingMilestone === 2 ? (
             <div className="dashboard-section">
               <h3>🎉 Transaction Complete</h3>
-              <p style={{ color: "var(--muted)" }}>Funds have been released. Thank you for using SecureTrust!</p>
+              <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>
+                Funds have been released. Thank you for using SecureTrust!
+              </p>
+              <RatingPanel
+                transactionId={_id}
+                isBuyer={isBuyer}
+                onToast={showToast}
+                onRated={onRated}
+              />
             </div>
           ) : viewingMilestone === 1 ? (
             <Milestone1Panel
@@ -517,7 +640,7 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
               {m1Complete && (
                 <div
                   className="milestone-card completed"
-                  style={{ cursor: "pointer", marginBottom: "1rem" }}
+                  style={{ cursor: "pointer", marginBottom: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}
                   onClick={() => setViewingMilestone(1)}
                 >
                   <span>✓ Milestone 1 Complete · {milestone1.trackingCarrier} · {milestone1.trackingNumber}</span>
@@ -541,35 +664,45 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
           )}
 
           {/* Role footer */}
-          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem", justifyContent: "center" }}>
             {isBuyer  && <span className="status pending" style={{ fontSize: "0.75rem" }}>You are the Buyer</span>}
             {isSeller && <span className="status completed" style={{ fontSize: "0.75rem" }}>You are the Seller</span>}
           </div>
 
           {/* Dispute section */}
-          <div className="dashboard-section">
-            <h3>Dispute</h3>
-            {!showEscalate ? (
-              <button className="action-btn escalate" onClick={() => setShowEscalate(true)}>
-                Escalate to Mediator
-              </button>
-            ) : (
-              <>
-                <textarea
-                  className="escalation-reason"
-                  placeholder="Describe the issue..."
-                  value={escalationReason}
-                  onChange={(e) => setEscalationReason(e.target.value)}
-                  rows={3}
-                />
-                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                  <button className="action-btn escalate" onClick={handleEscalate}>Submit Dispute</button>
-                  <button className="action-btn" onClick={() => setShowEscalate(false)}>Cancel</button>
-                </div>
-              </>
+            {!isComplete && milestone1.buyerFundsDeposited &&(
+              <div className="dashboard-section">
+                <h3>Dispute</h3>
+                {isEscalated ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      background: "rgba(245,158,11,0.08)",
+                      border: "1px solid rgba(245,158,11,0.25)",
+                      borderRadius: "10px",
+                      padding: "0.75rem 1rem",
+                      fontSize: "0.85rem",
+                      color: "var(--text)",
+                    }}
+                  >
+                    <span>⚖️</span>
+                    <span>
+                      <strong>Escalated to Mediator.</strong> A mediator is reviewing this
+                      transaction. You will be notified of their decision.
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    className="action-btn escalate"
+                    onClick={() => navigate(`/escalate/${transaction._id}`)}
+                  >
+                    Escalate to Mediator
+                  </button>
+                )}
+              </div>
             )}
-          </div>
-
         </div>
       </div>
     </>

@@ -149,38 +149,20 @@ export const banUser = async (req: Request, res: Response) => {
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
     const users = await User.find()
-      .select("firstName lastName username email role createdAt status")
+      .select("firstName lastName username email role createdAt isBanned")
       .sort({ createdAt: -1 })
       .lean();
 
     const result = await Promise.all(
       users.map(async (u) => {
         const listingCount = await Listing.countDocuments({ userID: u._id });
-        return { ...u, status: u.status ?? "active", listingCount };
+        return { ...u, listingCount };
       })
     );
 
     res.json(result);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch users" });
-  }
-};
-
-export const updateUserStatus = async (req: Request, res: Response) => {
-  const { status } = req.body;
-  if (!["active", "suspended"].includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
-  }
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).select("firstName lastName email role status");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to update status" });
   }
 };
 

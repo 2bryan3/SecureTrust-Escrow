@@ -33,6 +33,7 @@ export type Conversation = {
   participants: ConversationParticipant[];
   lastMessage?: ConversationMessage;
   updatedAt: string;
+  unreadCounts: Record<string, number>;
 };
 
 type ConversationContextType = {
@@ -45,6 +46,7 @@ type ConversationContextType = {
   unreadCount: number;
   messagesMap: Record<string, ConversationMessage[]>;
   setMessagesMap: Dispatch<SetStateAction<Record<string, ConversationMessage[]>>>;
+  markAsRead: (conversationId: string) => void;
 };
 
 const ConversationContext = createContext<ConversationContextType | undefined>(undefined);
@@ -54,7 +56,6 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [messagesMap, setMessagesMap] = useState<Record<string, ConversationMessage[]>>({});
 
   // Fetch conversations and ensure socket is running whenever user is available
@@ -70,16 +71,36 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     api<Conversation[]>("/api/conversations").then(setConversations).catch(console.error);
   }, [user, authLoading]);
 
+  // Derive total unread count from per-conversation unreadCounts
+  const unreadCount = useMemo(() => {
+    if (!user) return 0;
+    return conversations.reduce((total, conv) => {
+      const count = conv.unreadCounts?.[user._id] ?? 0;
+      return total + count;
+    }, 0);
+  }, [conversations, user]);
+
+  // Mark a conversation as read — call backend and clear local count
+  const markAsRead = (conversationId: string) => {
+    if (!user) return;
+    api(`/api/conversations/${conversationId}/read`, { method: "PATCH" }).catch(console.error);
+    setConversations(prev =>
+      prev.map(c => {
+        if (c._id !== conversationId) return c;
+        return {
+          ...c,
+          unreadCounts: { ...(c.unreadCounts ?? {}), [user._id]: 0 },
+        };
+      })
+    );
+  };
+
+
   // Keep refs so the socket handler always reads latest values without re-attaching
   const panelOpenRef = useRef(panelOpen);
   const activeConvIdRef = useRef(activeConversationId);
   useEffect(() => { panelOpenRef.current = panelOpen; }, [panelOpen]);
   useEffect(() => { activeConvIdRef.current = activeConversationId; }, [activeConversationId]);
-
-  // Reset unread count when panel opens
-  useEffect(() => {
-    if (panelOpen) setUnreadCount(0);
-  }, [panelOpen]);
 
   // Attach socket "newMessage" listener once socket connects
   useEffect(() => {
@@ -104,15 +125,29 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
             .catch(console.error);
           return prev;
         }
-        return prev
-          .map(c => c._id === conversationId ? { ...c, lastMessage: message, updatedAt: message.createdAt } : c)
+                return prev
+          .map(c => {
+            if (c._id !== conversationId) return c;
+ 
+            // Only increment unread if panel is closed or a different conv is active
+            const isActiveAndOpen =
+              panelOpenRef.current && activeConvIdRef.current === conversationId;
+ 
+            const currentCount = c.unreadCounts?.[user?._id ?? ""] ?? 0;
+            return {
+              ...c,
+              lastMessage: message,
+              updatedAt: message.createdAt,
+              unreadCounts: {
+                ...(c.unreadCounts ?? {}),
+                ...(user && !isActiveAndOpen
+                  ? { [user._id]: currentCount + 1 }
+                  : {}),
+              },
+            };
+          })
           .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       });
-
-      // Only increment unread when panel is closed or a different conversation is active
-      if (!panelOpenRef.current || activeConvIdRef.current !== conversationId) {
-        setUnreadCount(n => n + 1);
-      }
     };
 
     const attach = () => {
@@ -144,6 +179,7 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
       unreadCount,
       messagesMap,
       setMessagesMap,
+      markAsRead,
     }),
     [conversations, panelOpen, activeConversationId, unreadCount, messagesMap]
   );

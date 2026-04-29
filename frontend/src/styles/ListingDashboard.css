@@ -21,6 +21,7 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
+  padding-bottom: 1rem;
 }
 
 /* ── Header ── */
@@ -182,6 +183,11 @@
   background: rgba(245, 158, 11, 0.12);
   color: var(--gold);
   border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.milestone-card .status {
+  flex-shrink: 0;
+  margin-left: 0.75rem;
 }
 
 /* ── Funds row ── */

@@ -9,7 +9,7 @@
 
 .mp-panel {
   position: fixed;
-  top: 64px; /* matches navbar height */
+  top: 64px;
   right: 0;
   bottom: 0;
   width: 680px;
@@ -21,6 +21,8 @@
   flex-direction: column;
   animation: mp-slide-in 0.22s ease;
   box-shadow: -8px 0 40px rgba(0, 0, 0, 0.45);
+  border-radius: 20px 20px 20px 20px;
+  overflow: hidden;
 }
 
 @keyframes mp-slide-in {
@@ -36,6 +38,7 @@
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  background: var(--card);
 }
 
 .mp-title {
@@ -91,7 +94,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 8px;
+  padding: 10px 8px;
   border-radius: 10px;
   background: none;
   border: 1px solid transparent;
@@ -229,8 +232,8 @@
 .mp-msg--theirs { align-self: flex-start; align-items: flex-start; margin-right: auto; }
 
 .mp-msg-bubble {
-  padding: 8px 13px;
-  border-radius: 18px;
+  padding: 8px 14px;
+  border-radius: 20px;
   font-size: 0.9rem;
   line-height: 1.45;
   word-break: break-word;
@@ -239,13 +242,14 @@
 .mp-msg--mine .mp-msg-bubble {
   background: var(--accent);
   color: #fff;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 }
 
 .mp-msg--theirs .mp-msg-bubble {
   background: rgba(255, 255, 255, 0.07);
   color: var(--text);
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 5px;
 }
 
 .mp-msg-time {
@@ -254,14 +258,25 @@
   margin-top: 3px;
 }
 
+.mp-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
 /* ── Input row ── */
 .mp-input-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  background: var(--card);
 }
 
 .mp-input {
@@ -269,7 +284,7 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 8px 14px;
+  padding: 9px 16px;
   color: var(--text);
   font-size: 0.9rem;
   font-family: var(--font-body);
@@ -308,4 +323,95 @@
 .mp-send-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* ── Append these to your existing MessagesPanel.css ── */
+
+/* Unread conversation row */
+.mp-conv-item--unread {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+/* Avatar wrapper for unread dot positioning */
+.mp-conv-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Green dot on avatar for unread */
+.mp-conv-unread-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid var(--card);
+}
+
+/* Top row: name + time */
+.mp-conv-info-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+/* Bottom row: preview + badge */
+.mp-conv-info-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Bold name when unread */
+.mp-conv-name--unread {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Timestamp next to name */
+.mp-conv-time {
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Bold preview when unread */
+.mp-conv-preview--unread {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Unread count badge */
+.mp-conv-badge {
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  min-width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Timestamp divider between message groups */
+.mp-msg-timestamp {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0.75rem 0 0.35rem;
+  user-select: none;
+}
+
+.mp-msg-timestamp::before,
+.mp-msg-timestamp::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }

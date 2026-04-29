@@ -4,6 +4,10 @@ import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
 import { Types } from "mongoose";
 import { stripe } from "../utils/stripe";
+import { Listing } from "../models/listing.model";
+import { Conversation } from "../models/conversation.model";
+import { Message } from "../models/message.model";
+import { getIO, getSocketId } from "../utils/socketManager";
 
 const router = Router();
 
@@ -190,6 +194,7 @@ router.patch("/:id/milestone1/buyer", async (req: Request, res: Response) => {
     }
 
     await tx.save();
+    await Listing.findByIdAndUpdate(tx.listingId, { isLocked: true });
     return res.json({ transaction: tx });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -239,9 +244,65 @@ router.patch("/:id/milestone2/confirm", async (req: Request, res: Response) => {
     tx.status                     = "completed";
 
     // Credit the seller's in-app balance (simulates payout until Stripe Connect is set up)
-    await User.findByIdAndUpdate(tx.sellerId, { $inc: { funds: tx.amount } });
+    await User.findByIdAndUpdate(tx.sellerId, { 
+      $inc: { 
+        funds: tx.amount,
+        totalSales: 1
+      } 
+    });
 
     await tx.save();
+    await Listing.findByIdAndUpdate(tx.listingId, { isSold: true });
+    // Auto-message seller on completion
+    const listing = await Listing.findById(tx.listingId).select("title");
+    const listingTitle = listing ? listing.title : "your listing";
+
+    const systemUserId = process.env.SYSTEM_USER_ID;
+    console.log("SYSTEM_USER_ID from env:", systemUserId);
+    if (!systemUserId) { throw new Error("SYSTEM_USER_ID not set in environment variables."); }
+
+    let conversation = await Conversation.findOne({
+      participants: { $all: [systemUserId, tx.sellerId], $size: 2 },
+    });
+    if (!conversation) {
+      conversation = await Conversation.create({
+        participants: [systemUserId, tx.sellerId],
+      });
+    } else {
+      await Conversation.findByIdAndUpdate(conversation._id, { $pull: { hiddenBy: tx.sellerId } 
+      });
+    }
+
+    conversation = await Conversation.findById(conversation._id).populate("participants", "firstName lastName avatar");
+    if (!conversation) {throw new Error("Conversation not found after creation."); }
+
+    const messageText = `🎉 Your listing "${listingTitle}" has been sold! $${tx.amount.toLocaleString()} has been added to your balance.`;
+
+    const message = await Message.create({
+      conversationId: conversation._id,
+      sender: systemUserId,
+      text: messageText,
+    });
+
+    await Conversation.findByIdAndUpdate(conversation._id, { lastMessage: message._id });
+
+    const io = getIO();
+    if (io) {
+      const payload = {
+        conversationId: conversation._id.toString(),
+        message: {
+          _id: message._id.toString(),
+          text: message.text,
+          sender: systemUserId,
+          createdAt: message.createdAt,
+          conversationId: conversation._id.toString(),
+        },
+      };
+      [systemUserId, tx.sellerId].forEach((id) => {
+        const socketId = getSocketId(id.toString());
+        if (socketId) io.to(socketId).emit("newMessage", payload);
+      });
+    }
     return res.json({ transaction: tx, message: "Funds captured and released to seller." });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -279,6 +340,7 @@ router.patch("/:id/cancel", async (req: Request, res: Response) => {
     }
 
     await tx.save();
+    await Listing.findByIdAndUpdate(tx.listingId, { isLocked: false });
     return res.json({ transaction: tx, message: "Transaction cancelled." });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

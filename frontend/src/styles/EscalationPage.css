@@ -1,0 +1,339 @@
+/* src/styles/EscalationPage.css */
+
+.escalation-page {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.escalation-loading {
+  color: var(--muted);
+  margin-top: 4rem;
+  font-size: 0.95rem;
+}
+
+/* ── Success / Already-open card ─────────────────────────────────────── */
+.escalation-success-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  align-self: flex-start;
+  margin-top: 4rem;
+}
+
+.escalation-success-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.escalation-success-card h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.75rem;
+}
+
+.escalation-success-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Main container ──────────────────────────────────────────────────── */
+.escalation-container {
+  width: 100%;
+  max-width: 640px;
+}
+
+/* ── Back button ─────────────────────────────────────────────────────── */
+.esc-back {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.15s;
+}
+.esc-back:hover { color: var(--text); }
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.esc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.esc-header-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.esc-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.25rem;
+}
+
+.esc-subtitle {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Transaction context strip ───────────────────────────────────────── */
+.esc-tx-strip {
+  display: flex;
+  gap: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.75rem;
+}
+
+.esc-tx-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.9rem 1rem;
+  border-right: 1px solid var(--border);
+}
+.esc-tx-item:last-child { border-right: none; }
+
+.esc-tx-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.esc-tx-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.esc-tx-status {
+  text-transform: capitalize;
+  color: var(--accent, #f59e0b);
+}
+
+/* ── Form ────────────────────────────────────────────────────────────── */
+.esc-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.esc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.esc-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.esc-required { color: #ef4444; }
+
+.esc-field-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.esc-textarea {
+  background: var(--surface, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.15s;
+  line-height: 1.6;
+}
+.esc-textarea:focus {
+  outline: none;
+  border-color: var(--primary, #3b82f6);
+}
+.esc-textarea--error { border-color: #ef4444; }
+
+.esc-char-count {
+  font-size: 0.75rem;
+  color: var(--muted);
+  align-self: flex-end;
+}
+
+/* ── Dropzone ────────────────────────────────────────────────────────── */
+.esc-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.esc-dropzone:hover {
+  border-color: var(--primary, #3b82f6);
+  background: var(--surface, rgba(59,130,246,0.04));
+}
+
+.esc-dropzone-icon { font-size: 1rem; }
+.esc-dropzone-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.esc-dropzone-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+/* ── Evidence list ───────────────────────────────────────────────────── */
+.esc-evidence-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.esc-evidence-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--surface, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem 0.35rem 0.4rem;
+  max-width: 200px;
+}
+
+.esc-evidence-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.esc-evidence-file-icon {
+  font-size: 1.4rem;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.esc-evidence-name {
+  font-size: 0.75rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.esc-evidence-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.1s;
+}
+.esc-evidence-remove:hover { color: #ef4444; }
+
+/* ── Warning box ─────────────────────────────────────────────────────── */
+.esc-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-size: 0.83rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── Error ───────────────────────────────────────────────────────────── */
+.esc-error {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.83rem;
+  color: #ef4444;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.esc-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.esc-btn {
+  padding: 0.65rem 1.4rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.esc-btn:active { transform: scale(0.98); }
+.esc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.esc-btn--primary {
+  background: var(--primary, #3b82f6);
+  color: #fff;
+}
+.esc-btn--primary:hover:not(:disabled) { opacity: 0.88; }
+
+.esc-btn--danger {
+  background: #ef4444;
+  color: #fff;
+}
+.esc-btn--danger:hover:not(:disabled) { opacity: 0.88; }
+
+.esc-btn--ghost {
+  background: var(--surface, var(--card));
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.esc-btn--ghost:hover:not(:disabled) { opacity: 0.75; }

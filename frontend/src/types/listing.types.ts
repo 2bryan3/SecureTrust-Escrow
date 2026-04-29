@@ -6,6 +6,8 @@ export interface ListingUser {
   firstName: string;
   lastName: string;
   email: string;
+  rating?: number;
+  totalRatings?: number;
 }
 
 export interface ListingData {
@@ -17,6 +19,7 @@ export interface ListingData {
   images: string[];       // base64 strings from ListingImage docs
   user: ListingUser;   
   isSold: boolean;
+  isLocked: boolean;
   deliveryMethod: "shipping" | "local_pickup";
   createdAt: string;
   updatedAt: string;

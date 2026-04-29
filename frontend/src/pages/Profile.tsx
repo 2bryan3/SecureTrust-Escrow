@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { NavBar } from "../components/NavBar";
 import { Footer } from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import type { ListingData } from "../types/listing.types";
 import { Settings, Scale } from "lucide-react";
 
-type Tab = "info" | "listings" | "favorites" | "cases" | "overview";
+type Tab = "info" | "listings" | "favorites" | "cases" | "overview" | "ratings";
 
 interface Dispute {
   _id: string;
@@ -19,6 +19,15 @@ interface Dispute {
   sellerID: { firstName: string; lastName: string };
   reason: string;
   status: string;
+  createdAt: string;
+}
+
+interface RatingEntry {
+  _id: string;
+  reviewerId: { _id: string; firstName: string; lastName: string; avatar: string };
+  role: "buyer" | "seller";
+  rating: number;
+  note: string | null;
   createdAt: string;
 }
 
@@ -59,6 +68,15 @@ export default function Profile() {
   const isMediator = user?.role === "mediator";
   const isAdmin = user?.role === "admin";
   const isPrivileged = isMediator || isAdmin;
+
+  // Rating
+  const [ratings, setRatings] = useState<RatingEntry[]>([]);
+  const [ratingsLoading, setRatingsLoading] = useState(false);
+  const [ratingsFilter, setRatingsFilter] = useState<"all" | "seller" | "buyer">("all");
+
+  useEffect(() => {
+    refreshUser();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -111,12 +129,21 @@ export default function Profile() {
         axios.get("/api/listings/mine", { withCredentials: true }),
         axios.get("/api/listings/favorites", { withCredentials: true }),
       ]).then(([listingsRes, favoritesRes]) => {
-        setListingsCount(listingsRes.data.listings?.length ?? 0);
+        setListingsCount(listingsRes.data.listings?.filter((l: any) => !l.isSold).length ?? 0);
         setFavoritesCount(favoritesRes.data.listings?.length ?? 0);
       }).catch(console.error)
         .finally(() => setStatsLoading(false));
     }
   }, [user]);
+  //ratings
+  useEffect(() => {
+    if (activeTab !== "ratings" || !user) return;
+    setRatingsLoading(true);
+    axios.get(`/api/ratings/user/${user._id}`, { withCredentials: true })
+      .then(res => setRatings(res.data.ratings))
+      .catch(console.error)
+      .finally(() => setRatingsLoading(false));
+  }, [activeTab]);
 
   const handleSaveInfo = async () => {
     try {
@@ -150,14 +177,15 @@ export default function Profile() {
   const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username;
 
   const tabs: Tab[] = isPrivileged
-    ? ["info", "cases"]
-    : ["info", "listings", "favorites"];
+    ? ["info", "cases", "ratings"]
+    : ["info", "listings", "favorites", "ratings"];
 
   const tabLabel = (tab: Tab) => {
     if (tab === "info") return "Profile Info";
     if (tab === "listings") return "My Listings";
     if (tab === "favorites") return "Favorites";
     if (tab === "cases") return "Active Cases";
+    if (tab === "ratings") return "Ratings";
     return tab;
   };
 
@@ -212,7 +240,7 @@ export default function Profile() {
             <>
               <div className="profile-stat-card">
                 <span className="profile-stat-value">{statsLoading ? "—" : listingsCount}</span>
-                <span className="profile-stat-label">Listings</span>
+                <span className="profile-stat-label">Active Listings</span>
               </div>
               <div className="profile-stat-card">
                 <span className="profile-stat-value">{statsLoading ? "—" : favoritesCount}</span>
@@ -343,6 +371,77 @@ export default function Profile() {
             ) : (
               <ListingGrid items={favorites} loading={favoritesLoading} />
             )}
+          </div>
+        )}
+
+        {/* Ratings Tab */}
+        {activeTab === "ratings" && (
+          <div className="profile-info-tab">
+            <div className="profile-fields">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <h3 className="profile-section-title">
+                  {ratings.length} Rating{ratings.length !== 1 ? "s" : ""}
+                </h3>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {(["all", "seller", "buyer"] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setRatingsFilter(f)}
+                      style={{
+                        padding: "0.3rem 0.75rem",
+                        borderRadius: "999px",
+                        border: "1px solid var(--border)",
+                        background: ratingsFilter === f ? "var(--accent)" : "transparent",
+                        color: ratingsFilter === f ? "#fff" : "var(--muted)",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-body)",
+                      }}
+                    >
+                      {f === "all" ? "All" : f === "seller" ? "As Seller" : "As Buyer"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {ratingsLoading ? (
+                <p className="profile-empty">Loading ratings…</p>
+              ) : ratings.length === 0 ? (
+                <p className="profile-empty">No ratings yet.</p>
+              ) : (
+                ratings
+                  .filter(r => ratingsFilter === "all" || r.role === ratingsFilter)
+                  .map(r => (
+                    <div key={r._id} className="profile-dispute-card">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <div className="profile-pic-initials" style={{ width: 32, height: 32, fontSize: "0.75rem" }}>
+                            {r.reviewerId.firstName[0]}{r.reviewerId.lastName[0]}
+                          </div>
+                          <span className="profile-dispute-title">
+                            {r.reviewerId.firstName} {r.reviewerId.lastName}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ color: "var(--gold)", fontSize: "1rem" }}>
+                            {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                          </span>
+                          <span className={`profile-dispute-status profile-dispute-status--${r.role === "seller" ? "under-review" : "pending"}`}>
+                            {r.role === "seller" ? "As Seller" : "As Buyer"}
+                          </span>
+                        </div>
+                      </div>
+                      {r.note && (
+                        <p className="profile-dispute-reason" style={{ marginTop: "0.5rem" }}>{r.note}</p>
+                      )}
+                      <div className="profile-dispute-meta">
+                        {new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
           </div>
         )}
 

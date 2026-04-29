@@ -10,7 +10,7 @@ export type User = {
   state?: string;  
   avatar: string;
   role: "user" | "mediator" | "admin";
-  isBanned?: boolean;
+  isBanned: boolean;
   createdAt?: string;
   updatedAt?: string;
   totalSales?: number;
