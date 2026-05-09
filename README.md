@@ -227,6 +227,7 @@ The SecureTrust Bot is a system user required for automated messages. Create a u
 - **Base64 image storage** — images are stored directly in MongoDB as base64 strings, matching the approach used for listing images. No separate file hosting required for the capstone.
 - **Per-conversation unread counts** — stored as a `Map<userId, count>` on the Conversation document, giving accurate per-conversation unread tracking that persists across page refreshes.
 - **Milestone 3 return flow** — rather than immediately refunding when a mediator rules for the buyer, the transaction moves to a return milestone where the buyer must ship the item back and the seller must confirm receipt before the refund fires.
+- **Geocoding via Nominatim** — listing locations are geocoded using OpenStreetMap's Nominatim service, which is free but less accurate than paid alternatives for ambiguous US addresses. A production system would use the Google Maps Geocoding API.
 
 ---
 
@@ -252,6 +253,17 @@ mediator rules:
 
 milestone1 → cancelled (before funds move)
 ```
+
+---
+
+## Known Limitations
+
+- **Geocoding accuracy** — location data uses Nominatim (OpenStreetMap), which may snap ambiguous addresses to nearby incorrect locations. Real addresses work correctly; test addresses like "123 Main Street" may resolve inaccurately. Switching to Google Maps Geocoding API would resolve this.
+- **Image storage** — images are stored as base64 strings in MongoDB. This is sufficient for the capstone but would hit MongoDB's 16MB document limit at scale. Production would use S3 or Cloudinary.
+- **Seller payouts** — funds are credited to an in-app balance rather than a real bank account. Full payouts would require Stripe Connect.
+- **No email notifications** — all notifications are delivered via the in-app SecureTrust Bot. Users must be logged in to receive them.
+- **No return timeout** — if a buyer never ships the item back during milestone 3, there is no automatic resolution. A production system would use a scheduled job to handle stalled returns.
+- **No load testing** — the system has been tested with a small number of concurrent users in a local development environment.
 
 ---
 
