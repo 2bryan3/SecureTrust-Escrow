@@ -5,7 +5,7 @@ import listingRouter from "./routes/listing.routes";
 import authRouter from "./routes/auth.routes";
 import userRouter from "./routes/user.routes";
 import disputeRouter from "./routes/dispute.routes";
-import transactionRouter from "./routes/transaction.routes.";
+import transactionRouter from "./routes/transaction.routes";
 import paymentRouter from "./routes/payment.routes";
 import convRouter from "./routes/conversation.routes";
 import raitingRouter from "./routes/rating.routes";

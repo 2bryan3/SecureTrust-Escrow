@@ -266,7 +266,7 @@ export const AdminPage: React.FC = () => {
   { label: "Total Users",      value: stats?.totalUsers    ?? users.length,                                        color: "blue"  },
   { label: "Active Listings",  value: stats?.activeListings ?? listings.filter((l) => !l.isSold).length,           color: "cyan"  },
   { label: "Open Disputes",    value: stats?.openDisputes  ?? disputes.filter(d => d.status === "Pending" || d.status === "Under Review").length, color: "gold"  },
-  { label: "Revenue",          value: stats?.totalRevenue  != null ? fmtPrice(stats.totalRevenue) : "—",           color: "green" },
+  { label: "Completed Transactions",   value: listings.filter((l) => l.isSold).length,           color: "green" },
   ];
 
   // ── Filtered lists ───────────────────────────────────────────────────────────
@@ -292,7 +292,6 @@ export const AdminPage: React.FC = () => {
     { id: "overview", label: "Overview" },
     { id: "users", label: "Users" },
     { id: "listings", label: "Listings" },
-    { id: "logs", label: "Audit Log" },
   ];
 
   return (
@@ -358,7 +357,9 @@ export const AdminPage: React.FC = () => {
                 {users.slice(0, 4).map((u) => (
                   <div key={u._id} className="user-row">
                     <div className="user-info">
-                      <div className="user-avatar">{u.username}</div>
+                      <div className="user-avatar">
+                        {`${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.toUpperCase() || u.username[0].toUpperCase()}
+                      </div>
                       <div>
                         <div className="user-name">{u.firstName} {u.lastName}</div>
                         <div className="user-email">{u.email}</div>
@@ -516,35 +517,6 @@ export const AdminPage: React.FC = () => {
                     </div>
                   );
                 })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── LOGS ── */}
-      {activeTab === "logs" && (
-        <div className="admin-content">
-          <div className="admin-section">
-            <h2 className="section-heading">Audit Log</h2>
-            {loading ? (
-              <div className="admin-loading">Loading logs…</div>
-            ) : (
-              <div className="log-list">
-                {logs.length === 0 && <div className="admin-empty">No log entries yet.</div>}
-                {logs.map((log) => (
-                  <div key={log._id} className="log-item">
-                    <div className="log-dot" />
-                    <div className="log-body">
-                      <div className="log-action">{log.action}</div>
-                      <div className="log-meta">
-                        <span>Target: <strong>{log.target}</strong></span>
-                        <span>By: <strong>{log.admin}</strong></span>
-                        <span className="log-date">{log.date}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>

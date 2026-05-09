@@ -6,6 +6,7 @@ export type TransactionStatus =
   | "initiated"
   | "milestone1"
   | "milestone2"
+  | "milestone3"
   | "completed"
   | "disputed"
   | "refunded"
@@ -22,6 +23,13 @@ export type Milestone2Status =
   | "awaiting_confirmation"
   | "confirmed"
   | "funds_released";
+
+export type Milestone3Status =
+  | "locked"
+  | "awaiting_return"
+  | "buyer_shipped"
+  | "seller_confirmed"
+  | "refund_issued";
 
 export interface Milestone1Data {
   // Seller side
@@ -46,6 +54,22 @@ export interface Milestone2Data {
   status:            Milestone2Status;
 }
 
+export interface Milestone3Data {
+  // Buyer ships item back
+  returnImageUrl:     string | null;
+  returnTrackingNumber: string | null;
+  returnCarrier:      string | null;
+  buyerShippedAt:     string | null;
+  // Seller confirms receipt
+  sellerConfirmed:    boolean;
+  sellerConfirmedAt:  string | null;
+  // Refund record
+  refundIssuedAt:     string | null;
+  refundTxRef:        string | null;
+  status:             Milestone3Status;
+}
+
+
 export interface TransactionData {
   _id:          string;
   buyerId:      string | PopulatedUser;
@@ -56,6 +80,7 @@ export interface TransactionData {
   currency:     string;
   milestone1:   Milestone1Data;
   milestone2:   Milestone2Data;
+  milestone3:   Milestone3Data;
   status:       TransactionStatus;
   initiatedBy:  "buyer" | "seller";
   terms:        string | null;

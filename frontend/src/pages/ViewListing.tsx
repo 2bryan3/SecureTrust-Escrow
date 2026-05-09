@@ -341,12 +341,14 @@ export const ViewListing: React.FC = () => {
                 Transaction in Progress
               </button>
             )}
-            {transaction && !data.isSold && transaction.status !== "refunded" && (isOwner ? transaction.milestone1.buyerFundsDeposited : true) && (
+            {transaction && (!data.isSold || transaction.status === "milestone3") && transaction.status !== "refunded" && (isOwner ? transaction.milestone1.buyerFundsDeposited : true) && (
               <button className="vl-btn-primary" onClick={handleManageSale}>
-                {transaction.status === "disputed" ? "⚖️ View Dispute Status" : "Manage Sale"}
+                {transaction.status === "disputed" ? "⚖️ View Dispute Status" : 
+                transaction.status === "milestone3" ? "📦 Complete Return" : "Manage Sale"}
               </button>
             )}
-            {transaction && data.isSold && hasRated === false && transaction.status !== "refunded" && (
+            {transaction && hasRated === false && transaction.status !== "milestone3" &&
+              (data.isSold || transaction.status === "refunded") && (
               <button className="vl-btn-primary" onClick={handleManageSale}>
                 Rate Transaction
               </button>

@@ -8,6 +8,7 @@ import type {
   TransactionData,
   Milestone1Data,
   Milestone2Data,
+  Milestone3Data,
 } from "../types/transaction.types";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -392,6 +393,195 @@ const Milestone2Panel: React.FC<M2PanelProps> = ({
   );
 };
 
+// ─── Milestone 3 Panel ────────────────────────────────────────────────────────
+interface M3PanelProps {
+  txId: string;
+  currentUserId: string;
+  isBuyer: boolean;
+  isSeller: boolean;
+  m3: Milestone3Data;
+  transaction: TransactionData;
+  onUpdate: (tx: TransactionData) => void;
+  onToast: (msg: string, type: "success" | "error") => void;
+}
+
+const Milestone3Panel: React.FC<M3PanelProps> = ({
+  txId, currentUserId, isBuyer, isSeller, m3, transaction, onUpdate, onToast,
+}) => {
+  const [returnImageUrl, setReturnImageUrl] = useState(m3.returnImageUrl ?? "");
+  const [trackingNum, setTrackingNum]       = useState(m3.returnTrackingNumber ?? "");
+  const [carrier, setCarrier]               = useState(m3.returnCarrier ?? "");
+  const [submitting, setSubmitting]         = useState(false);
+  const fileInputRef                        = useRef<HTMLInputElement>(null);
+
+  const buyerShipped   = !!m3.buyerShippedAt;
+  const sellerConfirmed = m3.sellerConfirmed;
+  const refundIssued   = m3.status === "refund_issued";
+
+  const handleBuyerSubmit = async () => {
+    if (!returnImageUrl || !trackingNum) {
+      onToast("Return image and tracking number are required.", "error");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const updated = await patchTx(txId, "milestone3/buyer", {
+        buyerId: currentUserId,
+        returnImageUrl,
+        returnTrackingNumber: trackingNum,
+        returnCarrier: carrier || null,
+      });
+      onUpdate(updated);
+      onToast("Return shipping info submitted!", "success");
+    } catch (e: any) {
+      onToast(e.message, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSellerConfirm = async () => {
+    setSubmitting(true);
+    try {
+      const updated = await patchTx(txId, "milestone3/seller", {
+        sellerId: currentUserId,
+      });
+      onUpdate(updated);
+      onToast("Return confirmed. Refund has been issued to the buyer.", "success");
+    } catch (e: any) {
+      onToast(e.message, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="dashboard-section">
+      <h3>Milestone 3 — Return Shipment</h3>
+      <p className="order-subtitle" style={{ marginBottom: "1rem" }}>
+        The mediator ruled in the buyer's favor. The buyer must return the item before the refund is issued.
+      </p>
+
+      {/* Checklist */}
+      <div className="milestone-card" style={{ marginBottom: "8px" }}>
+        <span>{buyerShipped ? "✅" : "📦"} Buyer — Ship item back with tracking</span>
+        <span className={`status ${buyerShipped ? "completed" : "pending"}`}>
+          {buyerShipped ? `${m3.returnCarrier ?? "Carrier"}: ${m3.returnTrackingNumber}` : "Pending"}
+        </span>
+      </div>
+      <div className="milestone-card" style={{ marginBottom: "1rem" }}>
+        <span>{sellerConfirmed ? "✅" : "📬"} Seller — Confirm return received</span>
+        <span className={`status ${sellerConfirmed ? "completed" : "pending"}`}>
+          {sellerConfirmed ? "Confirmed" : "Pending"}
+        </span>
+      </div>
+
+      {refundIssued && (
+        <div className="milestone-card completed">
+          <span>🎉 Refund issued to buyer</span>
+          <span className="status completed">
+            {new Date(m3.refundIssuedAt!).toLocaleDateString()}
+          </span>
+        </div>
+      )}
+
+      {/* Buyer action — submit return shipping */}
+      {isBuyer && !buyerShipped && (
+        <div className="actions-section">
+          <h3>⚠️ Your action required</h3>
+          <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "12px" }}>
+            Ship the item back to the seller and submit your tracking info below.
+          </p>
+
+          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Return package photo</label>
+          <div className="evidence-dropzone" onClick={() => { if (!returnImageUrl) fileInputRef.current?.click(); }} style={{ cursor: returnImageUrl ? "default" : "pointer" }}>
+            {returnImageUrl ? (
+              <div style={{ position: "relative", display: "inline-block" }}>
+                <img src={returnImageUrl} alt="Return package" style={{ maxHeight: "120px", borderRadius: "8px" }} />
+                <button
+                  onClick={e => { e.stopPropagation(); setReturnImageUrl(""); }}
+                  style={{ position: "absolute", top: "-6px", right: "-6px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "50%", width: "18px", height: "18px", color: "var(--muted)", fontSize: "0.7rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >×</button>
+              </div>
+            ) : (
+              <>
+                <span className="evidence-icon">📷</span>
+                <span className="evidence-hint">Click to attach return package photo</span>
+              </>
+            )}
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => setReturnImageUrl(reader.result as string);
+              reader.readAsDataURL(file);
+            }}
+          />
+
+          <label style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "0.5rem", display: "block" }}>Return tracking number</label>
+          <input
+            type="text"
+            placeholder="1Z999AA10123456784"
+            value={trackingNum}
+            onChange={e => setTrackingNum(e.target.value)}
+            style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box", marginBottom: "8px" }}
+          />
+
+          <label style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Carrier (optional)</label>
+          <select
+            style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box", marginBottom: "12px" }}
+            value={carrier}
+            onChange={e => setCarrier(e.target.value)}
+          >
+            <option value="">Select carrier…</option>
+            {["UPS", "FedEx", "USPS", "DHL", "Other"].map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          <button className="action-btn upload" onClick={handleBuyerSubmit} disabled={submitting}>
+            {submitting ? "Submitting…" : "Submit Return Shipping Info"}
+          </button>
+        </div>
+      )}
+
+      {/* Seller action — confirm return received */}
+      {isSeller && buyerShipped && !sellerConfirmed && (
+        <div className="actions-section">
+          <h3>⚠️ Did you receive the returned item?</h3>
+          <div className="milestone-card" style={{ marginBottom: "12px" }}>
+            <span>📦 Return shipped via <strong>{m3.returnCarrier ?? "carrier"}</strong> · {m3.returnTrackingNumber}</span>
+            {m3.returnImageUrl && (
+              <a href={m3.returnImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem" }}>
+                View photo ↗
+              </a>
+            )}
+          </div>
+          <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "12px" }}>
+            By confirming, the buyer's refund will be issued immediately.
+          </p>
+          <button className="action-btn release" onClick={handleSellerConfirm} disabled={submitting}>
+            {submitting ? "Processing…" : "✅ Confirm Return Received & Issue Refund"}
+          </button>
+        </div>
+      )}
+
+      {isBuyer && buyerShipped && !sellerConfirmed && (
+        <p className="dashboard-waiting">⏳ Waiting for the seller to confirm they received the return…</p>
+      )}
+      {isSeller && !buyerShipped && (
+        <p className="dashboard-waiting">⏳ Waiting for the buyer to ship the item back…</p>
+      )}
+    </div>
+  );
+};
+
 // ─── Rating Panel ─────────────────────────────────────────────────────────────
 
 interface RatingPanelProps {
@@ -520,17 +710,20 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
 
   const m1Complete = milestone1.status === "completed";
   const isComplete = status === "completed";
+  const isRefunded = status === "refunded";
+  const isM3 = status === "milestone3";
 
   // Which milestone panel is visible — defaults to active one
-  const defaultView = status === "milestone2" || isComplete ? 2 : 1;
-  const [viewingMilestone, setViewingMilestone] = React.useState<1 | 2>(defaultView as 1 | 2);
+  const defaultView = status === "milestone2" || isComplete ? 2 : isM3 || isRefunded ? 3 : 1;
+  const [viewingMilestone, setViewingMilestone] = React.useState<1 | 2 | 3>(defaultView as 1 | 2 | 3);
 
   const navigate = useNavigate();
   const [isEscalated, setIsEscalated] = useState(false);
 
   React.useEffect(() => {
     if (status === "milestone2" || isComplete) setViewingMilestone(2);
-  }, [status, isComplete]);
+    if (isM3 || isRefunded) setViewingMilestone(3);
+  }, [status, isComplete, isM3, isRefunded]);
 
   useEffect(() => {
     axios.get(`/api/disputes/transaction/${transaction._id}`, { withCredentials: true })
@@ -589,6 +782,19 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
               <div className="circle">{isComplete ? "✓" : "2"}</div>
               <span>Confirm &amp; Release</span>
             </div>
+            {(isM3 || isRefunded || transaction.milestone3?.status !== "locked") && (
+              <>
+                <div className={`progress-connector ${isM3 || isRefunded ? "completed" : ""}`} />
+                <div
+                  className={`progress-step ${isRefunded ? "completed" : isM3 ? "active" : "pending"} ${viewingMilestone === 3 ? "viewing" : ""}`}
+                  onClick={isM3 || isRefunded ? () => setViewingMilestone(3) : undefined}
+                  style={{ cursor: isM3 || isRefunded ? "pointer" : "default" }}
+                >
+                  <div className="circle">{isRefunded ? "✓" : "3"}</div>
+                  <span>Return &amp; Refund</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Disputed banner */}
@@ -607,7 +813,18 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
           )}
 
           {/* Milestone panels */}
-          {isComplete && viewingMilestone === 2 ? (
+          {viewingMilestone === 3 ? (
+            <Milestone3Panel
+              txId={_id}
+              currentUserId={currentUserId}
+              isBuyer={isBuyer}
+              isSeller={isSeller}
+              m3={transaction.milestone3}
+              transaction={transaction}
+              onUpdate={onTransactionUpdate}
+              onToast={showToast}
+            />
+          ) : isComplete && viewingMilestone === 2 ? (
             <div className="dashboard-section">
               <h3>🎉 Transaction Complete</h3>
               <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>
@@ -636,7 +853,6 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
             />
           ) : (
             <>
-              {/* Collapsed M1 summary */}
               {m1Complete && (
                 <div
                   className="milestone-card completed"
@@ -670,7 +886,7 @@ export const ListingDashboardPopup: React.FC<ListingDashboardPopupProps> = ({
           </div>
 
           {/* Dispute section */}
-            {!isComplete && milestone1.buyerFundsDeposited &&(
+            {!isComplete && milestone1.buyerFundsDeposited && !isM3 && !isRefunded &&(
               <div className="dashboard-section">
                 <h3>Dispute</h3>
                 {isEscalated ? (

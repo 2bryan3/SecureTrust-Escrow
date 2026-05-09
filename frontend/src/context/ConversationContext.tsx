@@ -57,6 +57,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messagesMap, setMessagesMap] = useState<Record<string, ConversationMessage[]>>({});
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   // Fetch conversations and ensure socket is running whenever user is available
   // This covers both the explicit login flow and page refreshes.
@@ -68,13 +70,19 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     if (!getSocket()) initSocket().catch(() => {
       // redirect handled inside initSocket for AUTH_FAILED; suppress unhandled rejection
     });
-    api<Conversation[]>("/api/conversations").then(setConversations).catch(console.error);
+    api<Conversation[]>("/api/conversations")
+      .then(convs => {
+        console.log("conversations loaded:", convs);
+        setConversations(convs);
+      })
+      .catch(console.error);
   }, [user, authLoading]);
 
   // Derive total unread count from per-conversation unreadCounts
   const unreadCount = useMemo(() => {
     if (!user) return 0;
     return conversations.reduce((total, conv) => {
+      console.log("unreadCounts:", conv.unreadCounts, "user._id:", user._id, "count:", conv.unreadCounts?.[user._id]);
       const count = conv.unreadCounts?.[user._id] ?? 0;
       return total + count;
     }, 0);
@@ -105,6 +113,7 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   // Attach socket "newMessage" listener once socket connects
   useEffect(() => {
     const handler = (data: { conversationId: string; message: ConversationMessage }) => {
+      console.log("newMessage received in ConversationContext", data);
       const { conversationId, message } = data;
 
       // Add message (deduplicate by _id)
@@ -121,7 +130,10 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
           // This is a new conversation (e.g. someone messaged us for the first time).
           // Re-fetch the full list so it appears without requiring a page refresh.
           api<Conversation[]>("/api/conversations")
-            .then(convs => setConversations(convs))
+            .then(convs => {
+              console.log("conversations loaded", convs);
+              setConversations(convs);
+            })
             .catch(console.error);
           return prev;
         }
@@ -133,15 +145,15 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
             const isActiveAndOpen =
               panelOpenRef.current && activeConvIdRef.current === conversationId;
  
-            const currentCount = c.unreadCounts?.[user?._id ?? ""] ?? 0;
+            const currentCount = c.unreadCounts?.[userRef.current?._id ?? ""] ?? 0;
             return {
               ...c,
               lastMessage: message,
               updatedAt: message.createdAt,
               unreadCounts: {
                 ...(c.unreadCounts ?? {}),
-                ...(user && !isActiveAndOpen
-                  ? { [user._id]: currentCount + 1 }
+                ...(userRef.current && !isActiveAndOpen
+                  ? { [userRef.current._id]: currentCount + 1 }
                   : {}),
               },
             };

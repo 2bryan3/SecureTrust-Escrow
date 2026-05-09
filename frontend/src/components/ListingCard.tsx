@@ -12,9 +12,9 @@ type ListingCardProps = {
 
 const getTag = (listing: ListingData) => {
   if (listing.isSold) return null;
+  if (listing.isLocked) return { label: "In Progress", cls: "dl-card-tag--escrow" };
   const isNew = (Date.now() - new Date(listing.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
   if (isNew) return { label: "New", cls: "dl-card-tag--new" };
-  if (listing.price >= 100) return { label: "Escrow", cls: "dl-card-tag--escrow" };
   return null;
 };
 
