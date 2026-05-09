@@ -8,6 +8,7 @@ import { Listing } from "../models/listing.model";
 import { Conversation } from "../models/conversation.model";
 import { Message } from "../models/message.model";
 import { getIO, getSocketId } from "../utils/socketManager";
+import { sendBotMessage } from "../utils/botMessage";
 
 const router = Router();
 
@@ -304,6 +305,106 @@ router.patch("/:id/milestone2/confirm", async (req: Request, res: Response) => {
       });
     }
     return res.json({ transaction: tx, message: "Funds captured and released to seller." });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── PATCH /transactions/:id/milestone3/buyer ────────────────────────────────
+// Buyer submits return tracking + photo
+router.patch("/:id/milestone3/buyer", async (req: Request, res: Response) => {
+  try {
+    const tx = await TransactionModel.findById(req.params.id);
+    if (!tx) return res.status(404).json({ error: "Transaction not found." });
+    if (tx.status !== "milestone3") {
+      return res.status(400).json({ error: "Transaction is not in milestone 3." });
+    }
+
+    const { buyerId, returnImageUrl, returnTrackingNumber, returnCarrier } = req.body;
+    if (getRole(tx, buyerId) !== "buyer") {
+      return res.status(403).json({ error: "Only the buyer can submit return shipping." });
+    }
+    if (!returnImageUrl || !returnTrackingNumber) {
+      return res.status(400).json({ error: "Return image and tracking number are required." });
+    }
+
+    tx.milestone3.returnImageUrl       = returnImageUrl;
+    tx.milestone3.returnTrackingNumber = returnTrackingNumber;
+    tx.milestone3.returnCarrier        = returnCarrier ?? null;
+    tx.milestone3.buyerShippedAt       = new Date();
+    tx.milestone3.status               = "buyer_shipped";
+
+    await tx.save();
+    return res.json({ transaction: tx });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── PATCH /transactions/:id/milestone3/seller ───────────────────────────────
+// Seller confirms return received → triggers actual Stripe refund
+router.patch("/:id/milestone3/seller", async (req: Request, res: Response) => {
+  try {
+    const tx = await TransactionModel.findById(req.params.id);
+    if (!tx) return res.status(404).json({ error: "Transaction not found." });
+    if (tx.status !== "milestone3") {
+      return res.status(400).json({ error: "Transaction is not in milestone 3." });
+    }
+    if (tx.milestone3.status !== "buyer_shipped") {
+      return res.status(400).json({ error: "Buyer has not shipped the return yet." });
+    }
+
+    const { sellerId } = req.body;
+    if (getRole(tx, sellerId) !== "seller") {
+      return res.status(403).json({ error: "Only the seller can confirm return receipt." });
+    }
+
+    tx.milestone3.sellerConfirmed   = true;
+    tx.milestone3.sellerConfirmedAt = new Date();
+    tx.milestone3.status            = "seller_confirmed";
+
+    // Now issue the actual Stripe refund
+    if (!tx.stripePaymentIntentId) {
+      return res.status(400).json({ error: "No Stripe PaymentIntent found." });
+    }
+
+    const pi = await stripe.paymentIntents.retrieve(tx.stripePaymentIntentId);
+    let refundTxRef = null;
+
+    if (pi.status === "requires_capture") {
+      await stripe.paymentIntents.cancel(tx.stripePaymentIntentId);
+      refundTxRef = tx.stripePaymentIntentId;
+    } else if (pi.status === "succeeded") {
+      const refund = await stripe.refunds.create({ payment_intent: tx.stripePaymentIntentId });
+      refundTxRef = refund.id;
+    }
+
+    tx.milestone3.refundIssuedAt = new Date();
+    tx.milestone3.refundTxRef    = refundTxRef;
+    tx.milestone3.status         = "refund_issued";
+    tx.escrowAmount              = 0;
+    tx.status                    = "refunded";
+
+    await tx.save();
+
+    // Bot notifications
+    const listing = await Listing.findById(tx.listingId).select("title");
+    const listingTitle = listing?.title ?? "your listing";
+    const buyerIdStr  = tx.buyerId.toString();
+    const sellerIdStr = tx.sellerId.toString();
+
+    const systemUserId = process.env.SYSTEM_USER_ID;
+    if (systemUserId) {
+      await sendBotMessage(buyerIdStr,
+        `✅ The seller has confirmed receipt of the returned item for "${listingTitle}". Your refund of $${tx.amount.toLocaleString()} has been issued.`
+      );
+      await sendBotMessage(sellerIdStr,
+        `✅ You have confirmed receipt of the returned item for "${listingTitle}". The buyer's refund of $${tx.amount.toLocaleString()} has been issued.`
+      );
+    }
+    await Listing.findByIdAndUpdate(tx.listingId, { isSold: true, isLocked: false });
+
+    return res.json({ transaction: tx, message: "Return confirmed. Refund issued." });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

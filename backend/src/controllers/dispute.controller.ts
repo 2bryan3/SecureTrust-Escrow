@@ -7,58 +7,7 @@ import { Conversation } from "../models/conversation.model";
 import { Message } from "../models/message.model";
 import { stripe } from "../utils/stripe";
 import { getIO, getSocketId } from "../utils/socketManager";
-
-// ─── Helper: send a SecureTrust Bot message to a user ────────────────────────
-const sendBotMessage = async (recipientId: string, text: string) => {
-  const systemUserId = process.env.SYSTEM_USER_ID;
-  if (!systemUserId) throw new Error("SYSTEM_USER_ID not set in environment variables.");
-
-  let conversation = await Conversation.findOne({
-    participants: { $all: [systemUserId, recipientId], $size: 2 },
-  });
-
-  if (!conversation) {
-    conversation = await Conversation.create({
-      participants: [systemUserId, recipientId],
-    });
-  } else {
-    await Conversation.findByIdAndUpdate(conversation._id, {
-      $pull: { hiddenBy: recipientId },
-    });
-  }
-
-  conversation = await Conversation.findById(conversation._id).populate(
-    "participants",
-    "firstName lastName avatar"
-  );
-  if (!conversation) throw new Error("Conversation not found after creation.");
-
-  const message = await Message.create({
-    conversationId: conversation._id,
-    sender: systemUserId,
-    text,
-  });
-
-  await Conversation.findByIdAndUpdate(conversation._id, { lastMessage: message._id });
-
-  const io = getIO();
-  if (io) {
-    const payload = {
-      conversationId: conversation._id.toString(),
-      message: {
-        _id: message._id.toString(),
-        text: message.text,
-        sender: systemUserId,
-        createdAt: message.createdAt,
-        conversationId: conversation._id.toString(),
-      },
-    };
-    [systemUserId, recipientId].forEach((uid) => {
-      const socketId = getSocketId(uid.toString());
-      if (socketId) io.to(socketId).emit("newMessage", payload);
-    });
-  }
-};
+import { sendBotMessage } from "../utils/botMessage";
 
 // ─── POST /api/disputes/escalate/:transactionId ──────────────────────────────
 export const escalateDispute = async (req: Request, res: Response) => {
@@ -142,7 +91,8 @@ export const getDisputes = async (_req: Request, res: Response) => {
       .populate("reportedBy", "firstName lastName")
       .populate({
         path: "transactionId",
-        select: "amount escrowAmount status milestone1 milestone2 stripePaymentIntentId currency",
+        select: "amount escrowAmount status milestone1 milestone2 stripePaymentIntentId currency listingId",
+        populate: { path: "listingId", select: "deliveryMethod" },
       })
       .sort({ createdAt: -1 });
 
@@ -191,14 +141,14 @@ export const updateDisputeStatus = async (req: Request, res: Response) => {
       const pi = await stripe.paymentIntents.retrieve(tx.stripePaymentIntentId);
 
       if (status === "Refunded") {
-        if (pi.status === "requires_capture") {
-          await stripe.paymentIntents.cancel(tx.stripePaymentIntentId);
-        } else if (pi.status === "succeeded") {
-          await stripe.refunds.create({ payment_intent: tx.stripePaymentIntentId });
+        // Don't refund yet — buyer must return item first
+        if (tx) {
+          tx.status = "milestone3";
+          tx.milestone3.status = "awaiting_return";
+          await tx.save();
         }
-        tx.status       = "refunded";
-        tx.escrowAmount = 0;
-        await tx.save();
+        await Listing.findByIdAndUpdate(dispute.listingID, { isEscalated: false, isLocked: true });
+        await Dispute.findByIdAndUpdate(id, { status: "Refunded", decisionNotes: decisionNotes.trim() });
       }
 
       if (status === "Resolved") {
@@ -250,14 +200,13 @@ export const updateDisputeStatus = async (req: Request, res: Response) => {
         `⚖️ The mediator has ruled on the dispute for "${listingTitle}". The ruling was in your favor — funds have been released to your balance. Decision: "${notes}"`
       );
     } else if (status === "Refunded") {
-      await sendBotMessage(
-        buyerId,
-        `⚖️ The mediator has ruled on the dispute for "${listingTitle}". The ruling was in your favor — a refund has been issued. Decision: "${notes}"`
-      );
-      await sendBotMessage(
-        sellerId,
-        `⚖️ The mediator has ruled on the dispute for "${listingTitle}". The ruling was in favor of the buyer — a refund has been issued. Decision: "${notes}"`
-      );
+      await sendBotMessage(buyerId,
+          `⚖️ The mediator has ruled in your favor for "${listingTitle}". Please ship the item back to the seller. Once the seller confirms receipt, your refund will be issued. Decision: "${notes}"`
+        );
+        await sendBotMessage(sellerId,
+          `⚖️ The mediator has ruled in favor of the buyer for "${listingTitle}". The buyer will ship the item back to you. Once you confirm receipt, the buyer's refund will be issued. Decision: "${notes}"`
+        );
+        return res.status(200).json({ success: true });
     } else if (status === "Dismissed") {
       const dismissedMsg = `⚖️ The dispute for "${listingTitle}" has been dismissed by the mediator. Decision: "${notes}"`;
       await sendBotMessage(buyerId,  dismissedMsg);

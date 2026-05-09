@@ -43,6 +43,7 @@ interface DisputeTransaction {
   currency: string;
   milestone1: Milestone1;
   milestone2: Milestone2;
+  listingId: { deliveryMethod: string } | null;
 }
 
 interface Dispute {
@@ -161,10 +162,13 @@ export const MediatorPage: React.FC = () => {
           const isExpanded = expandedId === d._id;
           const isResolved = d.status === "Resolved" || d.status === "Refunded" || d.status === "Dismissed";
           const tx = d.transactionId;
+          const isFiledByBuyer = d.reportedBy._id === d.buyerID._id;
+          const daysOpen = Math.floor(
+            (Date.now() - new Date(d.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+          );
 
           return (
             <div key={d._id} className={`case-card ${isResolved ? "case-card--resolved" : ""}`}>
-
               <div
                 className="case-header"
                 onClick={() => setExpandedId(isExpanded ? null : d._id)}
@@ -179,11 +183,22 @@ export const MediatorPage: React.FC = () => {
                     <span className="party-label">Seller</span>
                     <span className="party-name">{fullName(d.sellerID)}</span>
                   </div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "0.3rem" }}>
+                    {new Date(d.createdAt).toLocaleDateString("en-US", {
+                      month: "short", day: "numeric", year: "numeric",
+                    })}
+                    {" · "}
+                    <strong style={{ color: isFiledByBuyer ? "var(--accent)" : "var(--gold)" }}>
+                      Filed by {isFiledByBuyer ? "Buyer" : "Seller"}
+                    </strong>
+                    {" · "}
+                    {isResolved
+                      ? <span style={{ color: "var(--muted)" }}>Closed</span>
+                      : daysOpen === 0 ? "Opened today" : `${daysOpen}d open`
+                    }
+                  </div>
                 </div>
                 <div className="case-header-right">
-                  <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
-                    Submitted {new Date(d.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </span>
                   <span className={`case-status ${statusClass(d.status)}`}>{d.status}</span>
                   <span className="case-amount">${d.listingID?.price?.toLocaleString() ?? "—"}</span>
                   <span className="case-chevron">{isExpanded ? "▲" : "▼"}</span>
@@ -266,23 +281,21 @@ export const MediatorPage: React.FC = () => {
                           <span className="mediator-tx-value">${tx.amount.toLocaleString()}</span>
                         </div>
                         <div className="mediator-tx-item">
-                          <span className="mediator-tx-label">In Escrow</span>
-                          <span className="mediator-tx-value">${tx.escrowAmount.toLocaleString()}</span>
+                          <span className="mediator-tx-label">Disputed At</span>
+                          <span className="mediator-tx-value">
+                            {tx.milestone2.status === "locked" ? "Milestone 1" : "Milestone 2"}
+                          </span>
                         </div>
                         <div className="mediator-tx-item">
-                          <span className="mediator-tx-label">Tx Status</span>
-                          <span className="mediator-tx-value">{formatStatus(tx.status)}</span>
-                        </div>
-                        <div className="mediator-tx-item">
-                          <span className="mediator-tx-label">Buyer Funded</span>
-                          <span className="mediator-tx-value">{tx.milestone1.buyerFundsDeposited ? "✅ Yes" : "❌ No"}</span>
-                        </div>
-                        <div className="mediator-tx-item">
-                          <span className="mediator-tx-label">Tracking</span>
+                          <span className="mediator-tx-label">
+                            {(tx as any).listingId?.deliveryMethod === "local_pickup" ? "Delivery" : "Tracking"}
+                          </span>
                           <span className="mediator-tx-value" style={{ fontSize: "0.78rem" }}>
-                            {tx.milestone1.trackingNumber
-                              ? `${tx.milestone1.trackingCarrier ?? ""} ${tx.milestone1.trackingNumber}`.trim()
-                              : "Not submitted"}
+                            {(tx as any).listingId?.deliveryMethod === "local_pickup"
+                              ? "Local Pickup"
+                              : tx.milestone1.trackingNumber
+                                ? `${tx.milestone1.trackingCarrier ?? ""} ${tx.milestone1.trackingNumber}`.trim()
+                                : "Not submitted"}
                           </span>
                         </div>
                       </div>
