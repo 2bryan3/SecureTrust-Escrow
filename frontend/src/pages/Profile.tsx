@@ -36,7 +36,6 @@ export default function Profile() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("info");
 
-  // Info tab state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
@@ -47,19 +46,15 @@ export default function Profile() {
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [infoError, setInfoError] = useState(false);
 
-  // Listings tab state
   const [listings, setListings] = useState<ListingData[]>([]);
   const [listingsLoading, setListingsLoading] = useState(false);
 
-  // Favorites tab state
   const [favorites, setFavorites] = useState<ListingData[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
 
-  // Disputes tab state
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [disputesLoading, setDisputesLoading] = useState(false);
 
-  // Stats
   const [statsLoading, setStatsLoading] = useState(true);
   const [listingsCount, setListingsCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -69,7 +64,6 @@ export default function Profile() {
   const isAdmin = user?.role === "admin";
   const isPrivileged = isMediator || isAdmin;
 
-  // Rating
   const [ratings, setRatings] = useState<RatingEntry[]>([]);
   const [ratingsLoading, setRatingsLoading] = useState(false);
   const [ratingsFilter, setRatingsFilter] = useState<"all" | "seller" | "buyer">("all");

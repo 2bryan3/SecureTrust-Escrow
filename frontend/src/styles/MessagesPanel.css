@@ -325,7 +325,6 @@
   cursor: not-allowed;
 }
 
-/* ── Append these to your existing MessagesPanel.css ── */
 
 /* Unread conversation row */
 .mp-conv-item--unread {

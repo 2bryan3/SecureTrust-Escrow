@@ -23,7 +23,6 @@ const ListingSchema = new mongoose.Schema({
             type: [Number],
         },
     },
-    // Display location (for frontend)
     street: { type: String },
     city: { type: String },
     state: { type: String },

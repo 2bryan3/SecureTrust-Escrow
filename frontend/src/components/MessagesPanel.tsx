@@ -227,7 +227,6 @@ export const MessagesPanel: React.FC = () => {
                       const senderId = msg.sender ? String(msg.sender) : "";
                       const isMine = !!myId && myId === senderId;
  
-                      // Show timestamp if first message, or if >5 mins since last message
                       const prevMsg = messages[idx - 1];
                       const showTimestamp = !prevMsg ||
                         new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime() > 5 * 60 * 1000;

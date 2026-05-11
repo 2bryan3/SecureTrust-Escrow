@@ -29,7 +29,6 @@ reportRouter.get("/", protectRoute, async (_req: Request, res: Response) => {
         {
           $sort: { createdAt: -1 } // latest first
         },
-        // Join User (reporter)
         {
           $lookup: {
             from: "users",
@@ -41,10 +40,9 @@ reportRouter.get("/", protectRoute, async (_req: Request, res: Response) => {
         },
         {
           $addFields: {
-            user: { $arrayElemAt: ["$user", 0] } // convert array to object
+            user: { $arrayElemAt: ["$user", 0] }
           }
         },
-        // Join Listing with full details
         {
           $lookup: {
             from: "listings",
@@ -52,7 +50,6 @@ reportRouter.get("/", protectRoute, async (_req: Request, res: Response) => {
             foreignField: "_id",
             as: "listingData",
             pipeline: [
-              // Lookup categories
               {
                 $lookup: {
                   from: "listingCategories",
@@ -69,7 +66,6 @@ reportRouter.get("/", protectRoute, async (_req: Request, res: Response) => {
                   as: "categories"
                 }
               },
-              // Lookup images
               {
                 $lookup: {
                   from: "listingImages",
@@ -78,7 +74,6 @@ reportRouter.get("/", protectRoute, async (_req: Request, res: Response) => {
                   as: "images"
                 }
               },
-              // Lookup user
               {
                 $lookup: {
                   from: "users",
@@ -101,7 +96,7 @@ reportRouter.get("/", protectRoute, async (_req: Request, res: Response) => {
         },
         {
           $addFields: {
-            listingData: { $arrayElemAt: ["$listingData", 0] } // convert array to object
+            listingData: { $arrayElemAt: ["$listingData", 0] }
           }
         }
       ]);
@@ -124,10 +119,9 @@ reportRouter.get("/:id", protectRoute, async (req: Request, res: Response) => {
       }
   
       const [report] = await ListingReport.aggregate([
-        { $match: { _id: new mongoose.Types.ObjectId(id) } }, // match single report
+        { $match: { _id: new mongoose.Types.ObjectId(id) } }, 
         { $sort: { createdAt: -1 } },
   
-        // Join User (reporter)
         {
           $lookup: {
             from: "users",
@@ -139,11 +133,10 @@ reportRouter.get("/:id", protectRoute, async (req: Request, res: Response) => {
         },
         {
           $addFields: {
-            user: { $arrayElemAt: ["$user", 0] } // convert array to object
+            user: { $arrayElemAt: ["$user", 0] }
           }
         },
   
-        // Join Listing with full details
         {
           $lookup: {
             from: "listings",
@@ -151,7 +144,6 @@ reportRouter.get("/:id", protectRoute, async (req: Request, res: Response) => {
             foreignField: "_id",
             as: "listingData",
             pipeline: [
-              // Lookup categories
               {
                 $lookup: {
                   from: "listingCategories",
@@ -168,7 +160,6 @@ reportRouter.get("/:id", protectRoute, async (req: Request, res: Response) => {
                   as: "categories"
                 }
               },
-              // Lookup images
               {
                 $lookup: {
                   from: "listingImages",
@@ -177,7 +168,6 @@ reportRouter.get("/:id", protectRoute, async (req: Request, res: Response) => {
                   as: "images"
                 }
               },
-              // Lookup user
               {
                 $lookup: {
                   from: "users",
@@ -200,7 +190,7 @@ reportRouter.get("/:id", protectRoute, async (req: Request, res: Response) => {
         },
         {
           $addFields: {
-            listingData: { $arrayElemAt: ["$listingData", 0] } // convert array to object
+            listingData: { $arrayElemAt: ["$listingData", 0] } 
           }
         }
       ]);

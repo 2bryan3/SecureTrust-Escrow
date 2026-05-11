@@ -16,7 +16,6 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
       "Content-Type": "application/json",
       ...(options.headers ?? {}),
     },
-    // IMPORTANT for cookie-based auth:
     credentials: "include",
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });

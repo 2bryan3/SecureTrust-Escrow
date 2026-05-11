@@ -19,7 +19,6 @@ export const UploadImages: React.FC<UploadImagesProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     onFilesSelected(Array.from(e.target.files));
-    // reset input so same file can be re-added if removed
     e.target.value = "";
   };
 

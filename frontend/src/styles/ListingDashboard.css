@@ -81,10 +81,8 @@
   align-items: center;
   font-size: 0.72rem;
   color: var(--muted);
-  /* no flex: 1 here — connector handles spacing */
 }
 
-/* Remove old pseudo-element connector — now using .progress-connector div */
 .progress-step .circle {
   width: 28px;
   height: 28px;
@@ -112,13 +110,12 @@
   color: var(--accent);
 }
 
-/* ── Progress connector line between steps ── */
 .progress-connector {
   flex: 1;
   height: 2px;
   background: var(--border);
   margin: 0 8px;
-  margin-bottom: 22px; /* aligns vertically with circle centers */
+  margin-bottom: 22px;
 }
 .progress-connector.completed {
   background: var(--accent);

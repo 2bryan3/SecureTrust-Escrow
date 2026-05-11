@@ -21,10 +21,6 @@ const io = new Server(httpServer, {
 
 setIO(io);
 
-// Socket auth middleware — mirrors authenticate() in auth.controller.ts
-// Rejects all connections that cannot prove identity via valid JWT cookie.
-// Known limitation: ban enforcement applies at connection time only; an existing
-// connection from a user who is subsequently banned stays live until disconnect.
 io.use(async (socket, next) => {
   console.log("Socket authenticating");
   const raw = socket.handshake.headers.cookie ?? "";
@@ -59,7 +55,7 @@ io.use(async (socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  const userId = socket.data.userId; // server-verified; never read from socket.handshake.query
+  const userId = socket.data.userId;
   if (userId) {
     setOnlineUser(userId, socket.id);
   }

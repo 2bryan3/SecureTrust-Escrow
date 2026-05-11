@@ -31,7 +31,6 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
   const [processing, setProcessing]  = useState(false);
   const [cardError, setCardError]    = useState<string | null>(null);
 
-  // Mount Stripe card element once the modal renders
   useEffect(() => {
     let mounted = true;
 

@@ -12,8 +12,6 @@ import { sendBotMessage } from "../utils/botMessage";
 
 const router = Router();
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
 const isValidId = (id: string) => Types.ObjectId.isValid(id);
 
 /** Derive which role the requesting user plays in a transaction */
@@ -121,11 +119,9 @@ router.patch("/:id/milestone1/seller", async (req: Request, res: Response) => {
     tx.milestone1.trackingCarrier  = trackingCarrier ?? null;
     tx.milestone1.sellerSubmittedAt = new Date();
 
-    // Advance milestone1 status
     const buyerDone = tx.milestone1.buyerFundsDeposited;
     tx.milestone1.status = buyerDone ? "completed" : "seller_submitted";
 
-    // If buyer already funded, move to milestone 2
     if (buyerDone) {
       tx.status = "milestone2";
       tx.milestone2.status = "awaiting_confirmation";
@@ -166,7 +162,6 @@ router.patch("/:id/milestone1/buyer", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "paymentIntentId is required." });
     }
 
-    // Verify with Stripe that the PaymentIntent was authorized (card held, not yet charged)
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status !== "requires_capture") {
@@ -175,7 +170,6 @@ router.patch("/:id/milestone1/buyer", async (req: Request, res: Response) => {
       });
     }
 
-    // Confirm the PaymentIntent belongs to this transaction
     if (paymentIntent.metadata.transactionId !== tx._id.toString()) {
       return res.status(400).json({ error: "PaymentIntent does not match this transaction." });
     }
@@ -363,7 +357,6 @@ router.patch("/:id/milestone3/seller", async (req: Request, res: Response) => {
     tx.milestone3.sellerConfirmedAt = new Date();
     tx.milestone3.status            = "seller_confirmed";
 
-    // Now issue the actual Stripe refund
     if (!tx.stripePaymentIntentId) {
       return res.status(400).json({ error: "No Stripe PaymentIntent found." });
     }
@@ -387,7 +380,6 @@ router.patch("/:id/milestone3/seller", async (req: Request, res: Response) => {
 
     await tx.save();
 
-    // Bot notifications
     const listing = await Listing.findById(tx.listingId).select("title");
     const listingTitle = listing?.title ?? "your listing";
     const buyerIdStr  = tx.buyerId.toString();
@@ -434,7 +426,6 @@ router.patch("/:id/cancel", async (req: Request, res: Response) => {
     tx.cancelledAt = new Date();
     tx.cancelledBy = role;
 
-    // If buyer had already deposited, cancel the Stripe PaymentIntent to release the hold
     if (tx.milestone1.buyerFundsDeposited && tx.stripePaymentIntentId) {
       await stripe.paymentIntents.cancel(tx.stripePaymentIntentId);
       tx.escrowAmount = 0;

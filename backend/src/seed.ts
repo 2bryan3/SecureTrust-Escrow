@@ -40,7 +40,7 @@ async function seed() {
 
   console.log("Categories seeded:", categories);
 
-    // Seed system user
+  
   const systemUser = await User.findOneAndUpdate(
     { email: "system@securetrust.com" },
     {

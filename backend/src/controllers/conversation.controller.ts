@@ -145,7 +145,6 @@ export const hideConversation = async (req: Request, res: Response) => {
         const { id } = req.params;
         const userId = req.user?._id;
 
-        // Allow participants to hide their own view of a conversation
         const conversation = await Conversation.findOne({ _id: id, participants: userId });
         if (!conversation) {
             return res.status(403).json({ error: "Forbidden" });

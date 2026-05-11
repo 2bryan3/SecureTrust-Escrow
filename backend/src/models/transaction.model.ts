@@ -14,16 +14,14 @@ import mongoose, { InferSchemaType, Types } from "mongoose";
 
 const milestone1Schema = new mongoose.Schema(
   {
-    // --- Seller obligations ---
-    packageImageUrl: { type: String, default: null },       // uploaded photo URL
+    packageImageUrl: { type: String, default: null },       
     trackingNumber:  { type: String, default: null },
-    trackingCarrier: { type: String, default: null },       // e.g. "UPS", "FedEx"
+    trackingCarrier: { type: String, default: null },       
     sellerSubmittedAt: { type: Date, default: null },
 
-    // --- Buyer obligations ---
     buyerFundsDeposited: { type: Boolean, default: false },
     buyerDepositedAt:    { type: Date,    default: null },
-    depositTxRef:        { type: String,  default: null },  // payment-processor reference
+    depositTxRef:        { type: String,  default: null },  
 
     // Milestone-level status
     status: {
@@ -37,19 +35,17 @@ const milestone1Schema = new mongoose.Schema(
 
 const milestone2Schema = new mongoose.Schema(
   {
-    // Buyer must explicitly confirm receipt
     buyerConfirmed:     { type: Boolean, default: false },
     buyerConfirmedAt:   { type: Date,    default: null },
-    buyerConfirmNote:   { type: String,  default: null }, // optional message from buyer
+    buyerConfirmNote:   { type: String,  default: null }, 
 
-    // Fund-release record
     fundsReleasedAt:    { type: Date,   default: null },
-    releaseTxRef:       { type: String, default: null }, // payment-processor reference
+    releaseTxRef:       { type: String, default: null },
 
     status: {
       type: String,
       enum: ["locked", "awaiting_confirmation", "confirmed", "funds_released"],
-      default: "locked",       // locked until milestone 1 is "completed"
+      default: "locked",       
     },
   },
   { _id: false }
@@ -76,24 +72,19 @@ const milestone3Schema = new mongoose.Schema(
 
 const transactionSchema = new mongoose.Schema(
   {
-    // --- Parties ---
     buyerId:  { type: Types.ObjectId, ref: "User", required: true },
     sellerId: { type: Types.ObjectId, ref: "User", required: true },
 
-    // --- Listing reference ---
     listingId: { type: Types.ObjectId, ref: "Listing", required: true },
 
-    // --- Financials ---
-    amount:       { type: Number, required: true, min: 0 },  // total agreed price
-    escrowAmount: { type: Number, default: 0,     min: 0 },  // what's currently held
+    amount:       { type: Number, required: true, min: 0 }, 
+    escrowAmount: { type: Number, default: 0,     min: 0 }, 
     currency:     { type: String, default: "USD" },
 
-    // --- Milestones ---
     milestone1: { type: milestone1Schema, default: () => ({}) },
     milestone2: { type: milestone2Schema, default: () => ({}) },
     milestone3: { type: milestone3Schema, default: () => ({}) },
 
-    // --- Top-level status ---
     status: {
       type: String,
       enum: [
@@ -102,34 +93,30 @@ const transactionSchema = new mongoose.Schema(
         "milestone2",       // milestone 1 done, working through milestone 2
         "milestone3",       // milestone 2 done, working through milestone 3 (returns/refunds)
         "completed",        // funds released, transaction closed
-        "disputed",         // dispute raised (for Phase 2)
-        "refunded",         // buyer refunded (for Phase 2)
+        "disputed",         // dispute raised 
+        "refunded",         // buyer refunded 
         "cancelled",        // cancelled before any funds moved
       ],
       default: "initiated",
     },
 
-    // Who initiated (either party can start)
     initiatedBy: {
       type: String,
       enum: ["buyer", "seller"],
       required: true,
     },
 
-    // Optional agreed-upon notes / terms
     terms: { type: String, default: null },
 
     // --- Stripe ---
-    stripePaymentIntentId: { type: String, default: null }, // PaymentIntent ID for escrow
+    stripePaymentIntentId: { type: String, default: null }, 
 
-    // Soft-delete / audit
     cancelledAt: { type: Date, default: null },
     cancelledBy: { type: String, enum: ["buyer", "seller", "admin", null], default: null },
   },
   { timestamps: true }
 );
 
-// Index for fast user-based lookups
 transactionSchema.index({ buyerId: 1, status: 1 });
 transactionSchema.index({ sellerId: 1, status: 1 });
 transactionSchema.index({ listingId: 1 });

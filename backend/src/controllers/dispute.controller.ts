@@ -141,7 +141,6 @@ export const updateDisputeStatus = async (req: Request, res: Response) => {
       const pi = await stripe.paymentIntents.retrieve(tx.stripePaymentIntentId);
 
       if (status === "Refunded") {
-        // Don't refund yet — buyer must return item first
         if (tx) {
           tx.status = "milestone3";
           tx.milestone3.status = "awaiting_return";

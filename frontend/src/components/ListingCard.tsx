@@ -41,7 +41,6 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, favoriteCount
     if (loading) return;
     setLoading(true);
 
-    // Optimistic update
     setFavorited(prev => !prev);
 
     try {
@@ -51,7 +50,6 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, favoriteCount
       });
 
       if (!res.ok) {
-        // Revert if failed
         setFavorited(prev => !prev);
       }
     } catch {

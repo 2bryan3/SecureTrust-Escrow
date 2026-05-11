@@ -20,7 +20,6 @@ interface ListingDashboardPopupProps {
   sellerID: string;
   onClose: () => void;
   onTransactionUpdate: (updated: TransactionData) => void;
-  /** Pass true when running without a real backend — actions update state locally. */
   mockMode?: boolean;
   onRated?: () => void;
 }

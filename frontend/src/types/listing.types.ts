@@ -16,7 +16,7 @@ export interface ListingData {
   description: string;
   price: number;
   categories: string[];
-  images: string[];       // base64 strings from ListingImage docs
+  images: string[];       
   user: ListingUser;   
   isSold: boolean;
   isLocked: boolean;
