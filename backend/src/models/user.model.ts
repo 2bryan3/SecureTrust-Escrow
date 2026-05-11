@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema(
         enum: ["Point"],
       },
       coordinates: {
-        type: [Number], // [lon, lat]
+        type: [Number],
       }
     },
     street: String,

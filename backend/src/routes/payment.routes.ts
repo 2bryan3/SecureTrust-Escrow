@@ -34,13 +34,12 @@ router.post("/create-payment-intent", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Funds already deposited for this transaction." });
     }
 
-    // Stripe amounts are in the smallest currency unit (cents for USD)
     const amountInCents = Math.round(tx.amount * 100);
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: (tx.currency ?? "usd").toLowerCase(),
-      capture_method: "manual", // authorize only — funds captured on delivery confirmation
+      capture_method: "manual",
       metadata: {
         transactionId: tx._id.toString(),
         buyerId: tx.buyerId.toString(),
@@ -48,7 +47,6 @@ router.post("/create-payment-intent", async (req: Request, res: Response) => {
       },
     });
 
-    // Store the PaymentIntent ID on the transaction for later capture/cancel
     tx.stripePaymentIntentId = paymentIntent.id;
     await tx.save();
 
@@ -82,7 +80,6 @@ router.post(
 
     try {
       if (webhookSecret) {
-        // Verify signature when webhook secret is configured
         event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
       } else {
         // In development without a webhook secret, parse body directly
@@ -97,7 +94,6 @@ router.post(
 
     try {
       switch (event.type) {
-        // Card authorized — buyer funds are now held, safe to mark as deposited
         case "payment_intent.amount_capturable_updated": {
           const tx = await TransactionModel.findOne({
             stripePaymentIntentId: paymentIntent.id,

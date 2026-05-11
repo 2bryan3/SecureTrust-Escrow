@@ -31,7 +31,6 @@ export const EscalationPage: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load transaction summary + check for existing open dispute
   useEffect(() => {
     if (!transactionId) return;
     Promise.all([
@@ -249,7 +248,6 @@ export const EscalationPage: React.FC = () => {
                         >×</button>
                     </div>
                     ))}
-                    {/* Add more button inside the dropzone */}
                     <div style={{
                     width: "80px", height: "80px", borderRadius: "8px",
                     border: "2px dashed var(--border)", display: "flex",

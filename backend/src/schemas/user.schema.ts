@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 
 const LocationSchema = z.object({
   type: z.literal("Point"),
-  coordinates: z.tuple([z.number(), z.number()]) // [lon, lat]
+  coordinates: z.tuple([z.number(), z.number()]) 
 });
 
 export const BaseUserSchema = z.object({
@@ -28,7 +28,7 @@ export const BaseUserSchema = z.object({
   });
 
 export const UserInputSchema = BaseUserSchema.omit({ roleID: true, avatar: true }).extend({
-roleID: BaseUserSchema.shape.roleID.optional(), // still allow if provided
+roleID: BaseUserSchema.shape.roleID.optional(), 
 });
 
 export type UserInput = z.infer<typeof UserInputSchema>;
@@ -78,7 +78,7 @@ export const UserUpdateSchema = z
     username: z.string().min(1).optional(),
     email: z.string().email().optional(),
     password: z.string().min(6).optional(),
-    avatar: z.string().optional(), // can be base64 or URL
+    avatar: z.string().optional(),
     address: z.string().optional(),
     location: LocationSchema.optional(),
     street: z.string().optional(),

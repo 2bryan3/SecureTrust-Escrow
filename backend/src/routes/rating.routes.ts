@@ -29,9 +29,8 @@ router.post("/", protectRoute, async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Not a party to this transaction." });
     }
 
-    // Reviewer is buyer → they're rating the seller, and vice versa
     const revieweeId = isBuyer ? tx.sellerId : tx.buyerId;
-    const role       = isBuyer ? "seller" : "buyer"; // role of the reviewee
+    const role       = isBuyer ? "seller" : "buyer";
 
     const existing = await Rating.findOne({ transactionId, reviewerId });
     if (existing) {
@@ -40,7 +39,6 @@ router.post("/", protectRoute, async (req: Request, res: Response) => {
 
     await Rating.create({ transactionId, reviewerId, revieweeId, role, rating, note: note ?? null });
 
-    // Recalculate reviewee's average rating and update on User
     const allRatings = await Rating.find({ revieweeId });
     const avg = allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length;
     await User.findByIdAndUpdate(revieweeId, {

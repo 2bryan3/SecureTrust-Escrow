@@ -1,6 +1,5 @@
-// shared/types/transaction.types.ts
-// These types mirror the Transaction Mongoose schema and are safe to import
-// on both the frontend (as read-only shape) and backend.
+// /types/transaction.types.ts
+
 
 export type TransactionStatus =
   | "initiated"
@@ -36,7 +35,7 @@ export interface Milestone1Data {
   packageImageUrl:   string | null;
   trackingNumber:    string | null;
   trackingCarrier:   string | null;
-  sellerSubmittedAt: string | null; // ISO date string from API
+  sellerSubmittedAt: string | null; 
   // Buyer side
   buyerFundsDeposited: boolean;
   buyerDepositedAt:    string | null;

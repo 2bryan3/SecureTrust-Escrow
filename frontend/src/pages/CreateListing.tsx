@@ -11,7 +11,6 @@ import { categoryFields, allCategories } from "../data/categoryFields";
 import { CustomSelect } from "../components/CustomSelect";
 
 
-// ── Component ─────────────────
 export const CreateItem = () => {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -36,7 +35,6 @@ export const CreateItem = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Clear attributes that no longer belong to selected categories
   useEffect(() => {
     const validKeys = selectedCategories.flatMap(
       (cat) => categoryFields[cat]?.map((f) => f.key) ?? []

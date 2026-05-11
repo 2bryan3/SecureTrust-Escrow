@@ -90,7 +90,7 @@
 .case-card--resolved { opacity: 0.65; }
 .case-card--resolved:hover { opacity: 0.85; }
 
-/* ── Card header (always visible, clickable) ── */
+/* ── Card header ── */
 .case-header {
   display: flex;
   align-items: center;
@@ -460,8 +460,6 @@
   flex-shrink: 0;
 }
 .close-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
-
-/* ── Append these to your existing MediatorPage.css ── */
 
 /* Escalation message block */
 .mediator-escalation-msg {

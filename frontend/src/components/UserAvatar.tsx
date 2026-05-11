@@ -12,7 +12,7 @@ export const UserAvatar: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/"); // navigate safely after logout
+      navigate("/");
     } catch (err) {
       console.error(err);
     }

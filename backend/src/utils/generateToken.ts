@@ -9,7 +9,7 @@ const generateTokenAndSetCookie = (userId: Types.ObjectId, res: Response) => {
     });
 
     res.cookie("jwt", token, {
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         httpOnly: true,
         sameSite: "strict",
         secure: false,

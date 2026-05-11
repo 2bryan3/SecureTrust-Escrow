@@ -55,7 +55,7 @@
   box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 
-/* Button (reuse your theme) */
+/* Button */
 .primary-btn {
   margin-top: 0.5rem;
   background: linear-gradient(135deg, var(--accent), var(--accent2));

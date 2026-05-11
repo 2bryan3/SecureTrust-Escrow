@@ -264,7 +264,6 @@ export const MediatorPage: React.FC = () => {
                         Transaction Context
                       </h4>
 
-                      {/* Package photo inline */}
                       {tx.milestone1.packageImageUrl && (
                         <div style={{ marginBottom: "0.75rem" }}>
                           <img

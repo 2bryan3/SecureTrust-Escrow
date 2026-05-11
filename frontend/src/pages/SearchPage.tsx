@@ -32,7 +32,6 @@ export const SearchPage: React.FC = () => {
 
     setLoading(true);
 
-    // If we have advanced filters or just a category/price search, use getListings
     if (hasAdvancedFilters) {
       const params = new URLSearchParams();
       if (q)          params.set("name", q);
@@ -50,7 +49,6 @@ export const SearchPage: React.FC = () => {
         .then(data => { setListings(data.listings ?? []); setLoading(false); })
         .catch(() => setLoading(false));
     } else {
-      // Simple keyword search
       fetch(`/api/listings/search?q=${encodeURIComponent(q)}`, { credentials: "include" })
         .then(r => r.json())
         .then(data => { setListings(data.listings ?? []); setLoading(false); })
@@ -58,7 +56,6 @@ export const SearchPage: React.FC = () => {
     }
   }, [q, category, sortBy, minPrice, maxPrice, attributes, city, street, state]);
 
-  // Build a readable summary of active filters
   const filterSummary: string[] = [];
   if (category && (q || minPrice || maxPrice || attributes)) filterSummary.push(category);
   if (minPrice && maxPrice) filterSummary.push(`$${minPrice}–$${maxPrice}`);

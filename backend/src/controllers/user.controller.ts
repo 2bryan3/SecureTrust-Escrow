@@ -1,13 +1,11 @@
 import { Request, Response } from "express";
-import { User } from "../models/user.model"; // Adjust path to match your setup
-import { UserUpdateSchema } from "../schemas/user.schema"; // or wherever you put it
+import { User } from "../models/user.model";
+import { UserUpdateSchema } from "../schemas/user.schema";
 import bcrypt from "bcryptjs";
 import { Listing } from "../models/listing.model";
 import { ListingImage } from "../models/listingImage.model";
 import { ListingCategory } from "../models/listingCategory.model";
 import { ListingFavorites } from "../models/listingFavorite.model";
-//import Message from "../models/messages.model.js";
-//import Conversation from "../models/conversations.model.js";
 import { ListingReport } from "../models/listingReport.model";
 import { geocodeAddress } from "../utils/geocodeAddress";
 
@@ -19,16 +17,7 @@ export const updateUser = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Validate input using Zod
     const updateData = UserUpdateSchema.parse(req.body);
-
-    // Check for unique username/email if changed
-    // if (updateData.username) {
-    //   const existingUsername = await User.findOne({ username: updateData.username, _id: { $ne: userId } });
-    //   if (existingUsername) {
-    //     return res.status(400).json({ message: "Username is already taken" });
-    //   }
-    // }
 
     if (updateData.email) {
       const existingEmail = await User.findOne({ email: updateData.email, _id: { $ne: userId } });
@@ -37,17 +26,14 @@ export const updateUser = async (req: Request, res: Response) => {
       }
     }
 
-    // If password is provided, hash it
     if (updateData.password) {
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(updateData.password, salt);
     }
 
-    // Set address, location, city, and state
     if (updateData.address) {
       const addressInput = updateData.address.trim();
      
-      // Require address to have proper format (e.g., "street, city, state")
       const addressParts = addressInput.split(",").map(p => p.trim());
       if (addressParts.length < 2) {
         return res.status(400).json({ message: "Invalid address format. Please use: Street, City, State" });
@@ -77,7 +63,6 @@ export const updateUser = async (req: Request, res: Response) => {
       console.log(geo.state);
     }
 
-    // Update the user
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       returnDocument: "after",
       runValidators: true,
@@ -126,19 +111,6 @@ export const banUser = async (req: Request, res: Response) => {
         );
 
         await ListingFavorites.deleteMany({ userID: id });
-
-        // await Promise.all([
-        //   ListingFavorites.deleteMany({userID: id}),
-        //   Message.deleteMany({
-        //     $or: [
-        //       { senderID: id },
-        //       { receiverID: id }
-        //     ]
-        //   }),
-        //   Conversation.deleteMany({
-        //     participants: id
-        //   })
-        // ]);
 
         return res.status(200).json({success: "true"});
     } catch (error: any){

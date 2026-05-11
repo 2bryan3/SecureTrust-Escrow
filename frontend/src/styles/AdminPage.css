@@ -453,7 +453,7 @@
   .admin-page { padding: 1.25rem; }
 }
 
-/* Status pills (replaces status-dot-label) */
+/* Status pills */
 .status-pill {
   font-size: 0.75rem;
   font-weight: 600;

@@ -71,7 +71,7 @@ export async function geocodeAddress(address: string) {
 
   const res = await fetch(url, {
     headers: {
-      "User-Agent": "securetrust-app", // REQUIRED
+      "User-Agent": "securetrust-app",
     },
   });
 

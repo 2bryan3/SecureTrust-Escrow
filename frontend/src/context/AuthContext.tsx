@@ -35,7 +35,7 @@ async function login(email: string, password: string): Promise<User> {
 
 async function signup(email: string, password: string, firstName: string, lastName: string) {
   const data = await api<User>("/auth/signup", { method: "POST", body: { email, password, firstName, lastName } });
-  setUser(data); // same shape
+  setUser(data);
 }
 
   async function logout() {

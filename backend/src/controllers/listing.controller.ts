@@ -107,7 +107,6 @@ export const getListings = async (req: Request, res: Response) => {
             $match: {
               $or: [
                 { state: { $regex: stateSearch, $options: "i" } },
-                // Additional state matches for abbreviations/full names
                 ...(stateAbbreviations[stateSearch] ? [{ state: { $regex: stateAbbreviations[stateSearch], $options: "i" } }] : []),
                 ...(Object.keys(stateAbbreviations).find(k => stateAbbreviations[k] === stateSearch) ? [{ state: { $regex: Object.keys(stateAbbreviations).find(k => stateAbbreviations[k] === stateSearch), $options: "i" } }] : [])
               ]
@@ -123,7 +122,6 @@ export const getListings = async (req: Request, res: Response) => {
       pipeline.push({ $match: { "categoryLinks.categoryID": categoryID } });
     }
 
-    // ---- NEW ----
     if (minPrice !== null || maxPrice !== null) {
       const priceFilter: any = {};
       if (minPrice !== null) priceFilter.$gte = minPrice;
@@ -136,7 +134,6 @@ export const getListings = async (req: Request, res: Response) => {
         pipeline.push({ $match: { [`attributes.${key}`]: { $regex: value, $options: "i" } } });
       }
     }
-    // -------------
 
     pipeline.push({
       $lookup: { from: "listingImages", localField: "_id", foreignField: "listingID", as: "images" }
@@ -182,9 +179,8 @@ export const getListings = async (req: Request, res: Response) => {
     });
 
     pipeline.push({ $project: { categoryLinks: 0, favorites: 0, categoriesData: 0 } });
-    //console.log(sortBy);
     if(sortBy === "closest"){
-      pipeline.push({ $sort: { distance: 1 } }); // closest first
+      pipeline.push({ $sort: { distance: 1 } });
     } else {
       pipeline.push({ $sort: sortAttributeMap[sortBy] ?? { createdAt: -1 } });
     }
@@ -223,11 +219,6 @@ export const updateListing = async (req: Request, res: Response) => {
   try {
     const listingData = req.body;
 
-    // if (req.user?._id != listingData.user._id){
-    //   return res.status(401).json({message: "Unauthorized access to update listing"})
-    // }
-
-    // Update listing
     await Listing.findByIdAndUpdate(
       listingData._id,
       {
@@ -264,7 +255,7 @@ export const updateListing = async (req: Request, res: Response) => {
 
     // Add all new categories
     const categoryDocuments = categories
-      .filter(cat => cat !== null) // Filter out any null results
+      .filter(cat => cat !== null)
       .map((cat) => ({
         listingID,
         categoryID: cat._id
@@ -330,7 +321,7 @@ export const getListing = async (req: Request, res: Response) => {
             $addFields: {
               images: "$images.image",
               categories: "$categories.name",
-              user: { $arrayElemAt: ["$user", 0] },  // Convert user array to single object
+              user: { $arrayElemAt: ["$user", 0] },
               street: "$street",
               city: "$city",
               state: "$state",
@@ -338,7 +329,7 @@ export const getListing = async (req: Request, res: Response) => {
           },
           {
             $project: {
-              categoryLinks: 0  // remove intermediate category
+              categoryLinks: 0
             }
           }
         ]);
@@ -354,8 +345,6 @@ export const getListing = async (req: Request, res: Response) => {
 
 export const createListing = async (req: Request, res: Response) => {
   try {
-    // A listing request should come in req.body with form of 
-    // Listing, categories [string], images [string]
     const { categories, images, attributes, ...listingData} = req.body;
     console.log(categories)
 
@@ -372,12 +361,10 @@ export const createListing = async (req: Request, res: Response) => {
       });
     }
 
-    // We don't send the userID from the form data, but we get it from protected route
     listingData.userID = String(req.user?._id);
     listingData.attributes = attributes ?? {};
     const listingInput = ListingInputSchema.parse(listingData);
 
-    // geocode address → coordinates
     const coords = await geocodeAddress(user.address);
 
     if (!coords) {
@@ -386,7 +373,6 @@ export const createListing = async (req: Request, res: Response) => {
       });
     }
 
-    // Add location/city/state
     const listing = new Listing({
       ...listingInput,
       location: {
@@ -402,7 +388,6 @@ export const createListing = async (req: Request, res: Response) => {
 
     const listingID = listing._id;
 
-    // Create the image listing documents
     await Promise.all(
       images.map(async (image: string) => {
         const listingImage = new ListingImage({image, listingID});
@@ -410,7 +395,6 @@ export const createListing = async (req: Request, res: Response) => {
       })
     );
 
-    // Create category listing documents
     await Promise.all(
       categories.map(async (categoryName: string) => {
         if (categoryName.trim().length == 0){
@@ -444,14 +428,12 @@ export const addCategory =  async (req: Request, res:Response) => {
   try {
     const name  = req.query.name as string;
 
-    // Validate with Zod
     const parsed = CategoryInputSchema.safeParse({ name });
 
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.issues});
     }
 
-    // Create category
     const category = await Category.create(parsed.data);
 
     return res.status(200).json(category);
@@ -504,8 +486,6 @@ export const getFavorite = async (req: Request, res: Response) => {
 
 export const searchListings = async (req: Request, res: Response) => {
   try {
-    //console.log("FULL URL:", req.originalUrl);
-    //console.log("searchListings: req.query: ", req.query)
     const q = (req.query.q as string)?.trim();
     if (!q) return res.status(200).json({ listings: [] });
 
@@ -513,10 +493,8 @@ export const searchListings = async (req: Request, res: Response) => {
 
     const useLocation = req.query.useLocation === "true";
 
-    // Create empty pipeline
     const pipeline: any[] = [];
 
-    // $geoNear must be the first stage in aggregation if location exists
     if (useLocation) {
       const user = await User.findById(userID);
       if (!user?.location?.coordinates) {
@@ -524,7 +502,6 @@ export const searchListings = async (req: Request, res: Response) => {
           message: "Please set your address in profile to use location search",
         });
       }
-      //console.log("searchListings: found user's location: ", user.location)
       const [lon, lat] = user.location.coordinates;
 
       pipeline.push({
@@ -539,28 +516,19 @@ export const searchListings = async (req: Request, res: Response) => {
       });
     }
 
-    // Continue with the rest of the pipelline
     pipeline.push(
-      // Text search on title first 
-      // I think we can remove this as we  have another match for title further down
       { $match: { title: { $regex: q, $options: "i" } } },
 
-      // Join category links
       { $lookup: { from: "listingCategories", localField: "_id", foreignField: "listingID", as: "categoryLinks" } },
 
-      // Join category names
       { $lookup: { from: "categories", localField: "categoryLinks.categoryID", foreignField: "_id", as: "categoriesData" } },
 
-      // Join images
       { $lookup: { from: "listingImages", localField: "_id", foreignField: "listingID", as: "images" } },
 
-      // Join user
       { $lookup: { from: "users", localField: "userID", foreignField: "_id", as: "user",
           pipeline: [{ $project: { password: 0 } }]
       }},
 
-      // Filter by category name if it matches query too
-      // (listings whose category name matches are also included via $or)
       {
         $match: {
           $or: [
@@ -568,7 +536,6 @@ export const searchListings = async (req: Request, res: Response) => {
             { "categoriesData.name": { $regex: q, $options: "i" } },
             { street: { $regex: q, $options: "i" } },
             { city: { $regex: q, $options: "i" } },
-            // State matches: include q and its abbreviation/full name if applicable
             { state: { $regex: q, $options: "i" } },
             ...(stateAbbreviations[q] ? [{ state: { $regex: stateAbbreviations[q], $options: "i" } }] : []),
             ...(Object.keys(stateAbbreviations).find(k => stateAbbreviations[k] === q) ? [{ state: { $regex: Object.keys(stateAbbreviations).find(k => stateAbbreviations[k] === q), $options: "i" } }] : [])
@@ -577,7 +544,6 @@ export const searchListings = async (req: Request, res: Response) => {
       },
     );
 
-    // Favorites if logged in
     if (userID) {
       pipeline.push({
         $lookup: {
@@ -603,9 +569,9 @@ export const searchListings = async (req: Request, res: Response) => {
 
     pipeline.push({ $project: { categoryLinks: 0, favorites: 0, categoriesData: 0 } });
     if (useLocation) {
-      pipeline.push({ $sort: { distance: 1 } }); // closest first
+      pipeline.push({ $sort: { distance: 1 } }); 
     } else {
-      pipeline.push({ $sort: { createdAt: -1 } }); // newest first
+      pipeline.push({ $sort: { createdAt: -1 } });
     }
     pipeline.push({ $limit: 50 });
 
@@ -691,7 +657,6 @@ export const getPopularListings = async (req: Request, res: Response) => {
     const userID = req.user?._id;
 
     const pipeline: any[] = [
-      // Count favorites per listing
       {
         $lookup: {
           from: "listingfavorites",
@@ -701,18 +666,14 @@ export const getPopularListings = async (req: Request, res: Response) => {
         }
       },
 
-      // Only include listings with at least 1 favorite
       { $match: { "allFavorites.0": { $exists: true } } },
 
-      // Add favorite count for sorting
       { $addFields: { favoriteCount: { $size: "$allFavorites" } } },
 
-      // Sort by most favorited
       { $sort: { favoriteCount: -1 } },
 
       { $limit: 20 },
 
-      // Standard lookups
       { $lookup: { from: "listingCategories", localField: "_id", foreignField: "listingID", as: "categoryLinks" } },
       { $lookup: { from: "categories", localField: "categoryLinks.categoryID", foreignField: "_id", as: "categoriesData" } },
       { $lookup: { from: "listingImages", localField: "_id", foreignField: "listingID", as: "images" } },
@@ -721,7 +682,6 @@ export const getPopularListings = async (req: Request, res: Response) => {
       }},
     ];
 
-    // Per-user isFavorited
     if (userID) {
       pipeline.push({
         $lookup: {

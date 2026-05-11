@@ -60,15 +60,12 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   useEffect(() => { userRef.current = user; }, [user]);
 
-  // Fetch conversations and ensure socket is running whenever user is available
-  // This covers both the explicit login flow and page refreshes.
   useEffect(() => {
     if (authLoading || !user) {
       if (!user) setConversations([]);
       return;
     }
     if (!getSocket()) initSocket().catch(() => {
-      // redirect handled inside initSocket for AUTH_FAILED; suppress unhandled rejection
     });
     api<Conversation[]>("/api/conversations")
       .then(convs => {
@@ -78,7 +75,6 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
       .catch(console.error);
   }, [user, authLoading]);
 
-  // Derive total unread count from per-conversation unreadCounts
   const unreadCount = useMemo(() => {
     if (!user) return 0;
     return conversations.reduce((total, conv) => {
@@ -88,7 +84,6 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     }, 0);
   }, [conversations, user]);
 
-  // Mark a conversation as read — call backend and clear local count
   const markAsRead = (conversationId: string) => {
     if (!user) return;
     api(`/api/conversations/${conversationId}/read`, { method: "PATCH" }).catch(console.error);
@@ -103,32 +98,25 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     );
   };
 
-
-  // Keep refs so the socket handler always reads latest values without re-attaching
   const panelOpenRef = useRef(panelOpen);
   const activeConvIdRef = useRef(activeConversationId);
   useEffect(() => { panelOpenRef.current = panelOpen; }, [panelOpen]);
   useEffect(() => { activeConvIdRef.current = activeConversationId; }, [activeConversationId]);
 
-  // Attach socket "newMessage" listener once socket connects
   useEffect(() => {
     const handler = (data: { conversationId: string; message: ConversationMessage }) => {
       console.log("newMessage received in ConversationContext", data);
       const { conversationId, message } = data;
 
-      // Add message (deduplicate by _id)
       setMessagesMap(prev => {
         const existing = prev[conversationId] ?? [];
         if (existing.some(m => m._id === String(message._id))) return prev;
         return { ...prev, [conversationId]: [...existing, message] };
       });
 
-      // Bubble up the lastMessage in the conversation list, or fetch if conversation is new
       setConversations(prev => {
         const exists = prev.some(c => c._id === conversationId);
         if (!exists) {
-          // This is a new conversation (e.g. someone messaged us for the first time).
-          // Re-fetch the full list so it appears without requiring a page refresh.
           api<Conversation[]>("/api/conversations")
             .then(convs => {
               console.log("conversations loaded", convs);
@@ -141,7 +129,6 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
           .map(c => {
             if (c._id !== conversationId) return c;
  
-            // Only increment unread if panel is closed or a different conv is active
             const isActiveAndOpen =
               panelOpenRef.current && activeConvIdRef.current === conversationId;
  
@@ -169,16 +156,14 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
       socket.on("newMessage", handler);
     };
 
-    // Try immediately (handles page refresh while socket is already up)
     attach();
 
-    // Also re-attach whenever the socket (re)connects
     window.addEventListener("socketConnected", attach);
     return () => {
       window.removeEventListener("socketConnected", attach);
       getSocket()?.off("newMessage", handler);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const value = useMemo(
     () => ({

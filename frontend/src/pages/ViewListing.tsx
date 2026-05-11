@@ -100,7 +100,6 @@ export const ViewListing: React.FC = () => {
     setShowEdit(false);
   };
 
-  // Fetch existing transaction for this listing (seller or buyer checking status)
   const handleManageSale = async () => {
     if (!data || !user) return;
     try {
@@ -128,11 +127,9 @@ export const ViewListing: React.FC = () => {
     }
   };
 
-  // Create a new transaction and open the dashboard
   const handleBuyNow = async () => {
     if (!data || !user) return;
     try {
-      // Check for existing unfunded transaction first and reuse it
       const listingId = typeof data._id === "string" ? data._id : (data._id as any)._id;
       const txRes = await fetch(`/api/transactions/user/${user._id}`, { credentials: "include" });
       const txJson = await txRes.json();
@@ -149,7 +146,6 @@ export const ViewListing: React.FC = () => {
         return;
       }
 
-      // No existing unfunded tx — create a new one
       const createRes = await fetch("/api/transactions", {
         method: "POST",
         credentials: "include",
